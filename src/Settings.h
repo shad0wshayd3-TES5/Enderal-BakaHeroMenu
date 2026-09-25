@@ -6,8 +6,10 @@ namespace Settings
 	{
 		bool ApplySeducerBonus{ false };
 		bool ApplyMesmerizeBonus{ false };
-		bool IgnoreGold{ false };
-		bool IgnorePoints{ false };
+		bool IgnoreLearningGold{ false };
+		bool IgnoreLearningPoints{ false };
+		bool IgnoreCraftingGold{ false };
+		bool IgnoreCraftingPoints{ false };
 		bool SkipCallback{ false };
 	};
 

@@ -90,21 +90,21 @@ private:
 		switch (a_value)
 		{
 		case Globals::kExpMult:
-			return EXPMult->value;
+			return EXPMult ? EXPMult->value : 0.0f;
 		case Globals::kExpMultSlope:
-			return EXPMultSlope->value;
+			return EXPMultSlope ? EXPMultSlope->value : 0.0f;
 		case Globals::kPlayerXP:
-			return PlayerXP->value;
+			return PlayerXP ? PlayerXP->value : 0.0f;
 		case Globals::kPlayerNeededXP:
-			return PlayerNeededXP->value;
+			return PlayerNeededXP ? PlayerNeededXP->value : 0.0f;
 		case Globals::kPlayerLevel:
-			return PlayerLevel->value;
+			return PlayerLevel ? PlayerLevel->value : 0.0f;
 		case Globals::kCraftingPoints:
-			return CraftingPoints->value;
+			return CraftingPoints ? CraftingPoints->value : 0.0f;
 		case Globals::kLearningPoints:
-			return LearningPoints->value;
+			return LearningPoints ? LearningPoints->value : 0.0f;
 		case Globals::kTalentPoints:
-			return TalentPoints->value;
+			return TalentPoints ? TalentPoints->value : 0.0f;
 		default:
 			return 0;
 		}
@@ -201,8 +201,11 @@ private:
 private:
 	void UpdatePlayerGold()
 	{
-		if (auto player = RE::PlayerCharacter::GetSingleton())
+		if (auto player = RE::PlayerCharacter::GetSingleton();
+			player && Gold001)
+		{
 			playerGold = player->GetItemCount(Gold001);
+		}
 	}
 
 	void UpdatePlayerName()
@@ -309,41 +312,23 @@ private:
 	}
 
 private:
-	bool HasGold(std::int32_t a_cost) const
+	void ModGold(std::int32_t a_cost)
 	{
-		if (Settings::GetSingleton()->IgnoreGold)
-			return true;
-		if (playerGold >= a_cost)
-			return true;
-		return false;
-	}
-
-	bool HasGlob(std::int32_t a_cost, RE::TESGlobal* a_glob) const
-	{
-		if (Settings::GetSingleton()->IgnorePoints)
-			return true;
-		if (a_glob->value >= a_cost)
-			return true;
-		return false;
-	}
-
-	void ChangeGold(std::int32_t a_cost)
-	{
-		if (Settings::GetSingleton()->IgnoreGold)
-			return;
-		if (auto player = RE::PlayerCharacter::GetSingleton())
+		if (auto player = RE::PlayerCharacter::GetSingleton();
+			player && Gold001)
+		{
 			player->RemoveItem(Gold001, a_cost, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
+		}
 		UpdatePlayerGold();
 	}
 
-	void ChangeGlob(std::int32_t a_cost, RE::TESGlobal* a_glob)
+	void ModGlobal(RE::TESGlobal* a_global, std::int32_t a_mod)
 	{
-		if (Settings::GetSingleton()->IgnorePoints)
-			return;
-		a_glob->value -= a_cost;
+		if (a_global)
+			a_global->value -= a_mod;
 	}
 
-	void ChangeStat(std::int32_t a_mod, RE::ActorValue a_actorValue)
+	void ModValue(RE::ActorValue a_actorValue, std::int32_t a_mod)
 	{
 		if (auto player = RE::PlayerCharacter::GetSingleton())
 			player->ModBaseActorValue(a_actorValue, static_cast<float>(a_mod));
@@ -353,21 +338,21 @@ private:
 private:
 	void IncreaseLearningSkill(RE::ActorValue a_actorValue, std::int32_t a_cost)
 	{
-		if (!Settings::GetSingleton()->IgnoreGold)
-			ChangeGold(a_cost);
-		if (!Settings::GetSingleton()->IgnorePoints)
-			ChangeGlob(1, LearningPoints);
-		ChangeStat(1, a_actorValue);
+		if (!Settings::GetSingleton()->IgnoreLearningGold)
+			ModGold(a_cost);
+		if (!Settings::GetSingleton()->IgnoreLearningPoints)
+			ModGlobal(LearningPoints, 1);
+		ModValue(a_actorValue, 1);
 		UpdateMenuData();
 	}
 
 	void IncreaseCraftingSkill(RE::ActorValue a_actorValue, std::int32_t a_cost)
 	{
-		if (!Settings::GetSingleton()->IgnoreGold)
-			ChangeGold(a_cost);
-		if (!Settings::GetSingleton()->IgnorePoints)
-			ChangeGlob(1, CraftingPoints);
-		ChangeStat(1, a_actorValue);
+		if (!Settings::GetSingleton()->IgnoreCraftingGold)
+			ModGold(a_cost);
+		if (!Settings::GetSingleton()->IgnoreCraftingPoints)
+			ModGlobal(CraftingPoints, 1);
+		ModValue(a_actorValue, 1);
 		UpdateMenuData();
 	}
 
@@ -450,15 +435,17 @@ private:
 	void TryIncreaseLearningSkill(RE::ActorValue a_actorValue)
 	{
 		auto cost = GetGoldCost(a_actorValue);
-		if (!HasGold(cost))
+		if (!Settings::GetSingleton()->IgnoreLearningGold &&
+			cost > playerGold)
 		{
 			auto message = std::format(
-				"You do not have enough pennies to increase {}!\nCost: {}"sv,
+				"You do not have enough pennies to increase {}!\nPrice: {}p"sv,
 				a_actorValue, cost);
 			return RE::DebugMessageBox(message.c_str());
 		}
 
-		if (!HasGlob(1, LearningPoints))
+		if (!Settings::GetSingleton()->IgnoreLearningPoints &&
+			!GetGlobalValue(kLearningPoints))
 		{
 			auto message = std::format(
 				"You do not have enough Learning Points to increase {}!"sv,
@@ -474,15 +461,17 @@ private:
 	void TryIncreaseCraftingSkill(RE::ActorValue a_actorValue)
 	{
 		auto cost = GetGoldCost(a_actorValue);
-		if (!HasGold(cost))
+		if (!Settings::GetSingleton()->IgnoreCraftingGold &&
+			cost > playerGold)
 		{
 			auto message = std::format(
-				"You do not have enough pennies to increase {}!\nCost: {}"sv,
+				"You do not have enough pennies to increase {}!\nPrice: {}p"sv,
 				a_actorValue, cost);
 			return RE::DebugMessageBox(message.c_str());
 		}
 
-		if (!HasGlob(1, CraftingPoints))
+		if (!Settings::GetSingleton()->IgnoreCraftingPoints &&
+			!GetGlobalValue(kCraftingPoints))
 		{
 			auto message = std::format(
 				"You do not have enough Crafting Points to increase {}!"sv,
