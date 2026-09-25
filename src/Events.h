@@ -19,7 +19,7 @@ namespace Events
 						view->GetMovieDef() &&
 						REX::STR::ICONTAINS(view->GetMovieDef()->GetFileURL(), "00E_HeroMenu.swf"sv))
 					{
-						Manager::GetSingleton()->Update();
+						Manager::GetSingleton()->UpdateCache();
 						Manager::GetSingleton()->UpdateMenuName(view);
 					}
 			}

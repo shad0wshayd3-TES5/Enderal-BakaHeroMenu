@@ -7,7 +7,7 @@ namespace Hooks
 	class hkProcessEvent
 	{
 	private:
-		static constexpr std::array<const char*, 18> Descriptions{
+		static constexpr std::array<const char*, 18> SkillNames{
 			"einhand",           // OneHanded
 			"zweihand",          // TwoHanded
 			"bogenkunst",        // Archery
@@ -29,18 +29,18 @@ namespace Hooks
 		};
 
 	private:
-		static std::optional<std::int32_t> GetVisibleDescription(RE::GFxValue& a_description)
+		static std::optional<std::int32_t> GetSelectedSkill(RE::GFxValue& a_mc)
 		{
 			for (std::int32_t i = 0; i < 18; i++)
 			{
 				RE::GFxValue member;
-				if (a_description.GetMember(Descriptions[i], &member))
+				if (a_mc.GetMember(SkillNames[i], &member))
 				{
 					RE::GFxValue visible;
 					if (auto success = member.GetMember("_visible", &visible);
 						success && visible.IsBool() && visible.GetBool())
 					{
-						return i + 6;
+						return i;
 					}
 				}
 			}
@@ -53,14 +53,14 @@ namespace Hooks
 			if (a_event && *a_event)
 			{
 				if (auto ui = RE::UI::GetSingleton();
-					ui && ui->IsMenuOpen("CustomMenu"sv))
+					ui && ui->IsMenuOpen("CustomMenu"sv) && !ui->IsMenuOpen("Console"sv))
 				{
-					RE::GFxValue description;
+					RE::GFxValue movieclip;
 					if (auto view = ui->GetMovieView("CustomMenu"sv);
 						view &&
 						view->GetMovieDef() &&
 						REX::STR::ICONTAINS(view->GetMovieDef()->GetFileURL(), "00E_HeroMenu.swf"sv) &&
-						view->GetVariable(&description, "heromenu_mc.description"))
+						view->GetVariable(&movieclip, "heromenu_mc.description"))
 					{
 						if (auto buttonEvent = (*a_event)->AsButtonEvent();
 							buttonEvent && buttonEvent->IsDown())
@@ -71,7 +71,7 @@ namespace Hooks
 							switch (buttonEvent->GetIDCode())
 							{
 							case 0:  // Click
-								if (auto idx = GetVisibleDescription(description))
+								if (auto idx = GetSelectedSkill(movieclip))
 									Manager::GetSingleton()->TryIncreaseSkill(*idx);
 								break;
 							case 15:  // Cancel

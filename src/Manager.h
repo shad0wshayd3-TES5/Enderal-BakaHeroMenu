@@ -5,24 +5,57 @@
 class Manager :
 	public REX::TSingleton<Manager>
 {
-public:
-	enum Book : std::int32_t
+private:
+	enum ActorValue : std::int32_t
+	{
+		// Skills
+		kOneHanded,
+		kTwoHanded,
+		kMarksman,
+		kBlock,
+		kHandicraft,
+		kHeavyArmor,
+		kLightArmor,
+		kSlightOfHand,
+		kLockpicking,
+		kSneak,
+		kAlchemy,
+		kRhetoric,
+		kMentalism,
+		kEntropy,
+		kElementalism,
+		kPsionics,
+		kLightMagic,
+		kEnchanting,
+
+		// Attributes
+		kHealth,
+		kMana,
+		kStamina,
+		kArcaneFever,
+
+		// Total
+		ActorValueTotal,
+		SkillTotal = 18,
+	};
+
+	enum Index : std::int32_t
+	{
+		kStat,
+		kBase,
+		IndexTotal,
+	};
+
+	enum Level : std::int32_t
 	{
 		kApprentice,
 		kAdept,
 		kExpert,
 		kMaster,
-		kBookTotal,
+		LevelTotal,
 	};
 
-	enum Stat : std::int32_t
-	{
-		kStat,
-		kBase,
-		kStatTotal,
-	};
-
-	enum Globals : std::int32_t
+	enum Global : std::int32_t
 	{
 		kExpMult,
 		kExpMultSlope,
@@ -32,9 +65,10 @@ public:
 		kCraftingPoints,
 		kLearningPoints,
 		kTalentPoints,
-		kGlobTotal,
+		GlobalTotal,
 	};
 
+public:
 	void LoadForms()
 	{
 		UpdateForms();
@@ -47,11 +81,10 @@ public:
 		// UpdatePlayerName();
 	}
 
-	void Update()
+	void UpdateCache()
 	{
 		UpdateClassName();
-		UpdateAttributes();
-		UpdateStatValues();
+		UpdateActorValues();
 		UpdatePlayerName();
 		UpdatePlayerGold();
 	}
@@ -62,140 +95,134 @@ public:
 		return overrideMessage;
 	}
 
-	void ResetOverrideMessage()
+private:
+	void SetOverrideMessage(bool a_value)
 	{
-		overrideMessage = false;
+		overrideMessage = a_value;
 	}
 
 private:
-	inline std::int32_t GetAttrIndex(RE::ActorValue a_actorValue) const
+	auto ConvertActorValue(ActorValue a_av) const
 	{
-		switch (a_actorValue)
+		switch (a_av)
 		{
-		case RE::ActorValue::kLastFlattered:
-			return 3;
-		default:
-			return std::to_underlying(a_actorValue) - std::to_underlying(RE::ActorValue::kHealth);
+			case kOneHanded:
+				return RE::ActorValue::kOneHanded;
+			case kTwoHanded:
+				return RE::ActorValue::kTwoHanded;
+			case kMarksman:
+				return RE::ActorValue::kArchery;
+			case kBlock:
+				return RE::ActorValue::kBlock;
+			case kHandicraft:
+				return RE::ActorValue::kSmithing;
+			case kHeavyArmor:
+				return RE::ActorValue::kHeavyArmor;
+			case kLightArmor:
+				return RE::ActorValue::kLightArmor;
+			case kSlightOfHand:
+				return RE::ActorValue::kPickpocket;
+			case kLockpicking:
+				return RE::ActorValue::kLockpicking;
+			case kSneak:
+				return RE::ActorValue::kSneak;
+			case kAlchemy:
+				return RE::ActorValue::kAlchemy;
+			case kRhetoric:
+				return RE::ActorValue::kSpeech;
+			case kMentalism:
+				return RE::ActorValue::kAlteration;
+			case kEntropy:
+				return RE::ActorValue::kConjuration;
+			case kElementalism:
+				return RE::ActorValue::kDestruction;
+			case kPsionics:
+				return RE::ActorValue::kIllusion;
+			case kLightMagic:
+				return RE::ActorValue::kRestoration;
+			case kEnchanting:
+				return RE::ActorValue::kEnchanting;
+			case kHealth:
+				return RE::ActorValue::kHealth;
+			case kMana:
+				return RE::ActorValue::kMagicka;
+			case kStamina:
+				return RE::ActorValue::kStamina;
+			case kArcaneFever:
+				return RE::ActorValue::kLastFlattered;
+			default:
+				return RE::ActorValue::kNone;
 		}
 	}
 
-	inline std::int32_t GetStatIndex(RE::ActorValue a_actorValue) const
+	auto ConvertActorValue(std::int32_t a_av) const
 	{
-		return std::to_underlying(a_actorValue) - std::to_underlying(RE::ActorValue::kOneHanded);
+		return ConvertActorValue(static_cast<ActorValue>(a_av));
 	}
 
 private:
-	float GetGlobalValue(Globals a_value)
+	auto GetGlobalValue(Global a_global) const
 	{
-		switch (a_value)
+		switch (a_global)
 		{
-		case Globals::kExpMult:
+		case Global::kExpMult:
 			return EXPMult ? EXPMult->value : 0.0f;
-		case Globals::kExpMultSlope:
+		case Global::kExpMultSlope:
 			return EXPMultSlope ? EXPMultSlope->value : 0.0f;
-		case Globals::kPlayerXP:
+		case Global::kPlayerXP:
 			return PlayerXP ? PlayerXP->value : 0.0f;
-		case Globals::kPlayerNeededXP:
+		case Global::kPlayerNeededXP:
 			return PlayerNeededXP ? PlayerNeededXP->value : 0.0f;
-		case Globals::kPlayerLevel:
+		case Global::kPlayerLevel:
 			return PlayerLevel ? PlayerLevel->value : 0.0f;
-		case Globals::kCraftingPoints:
+		case Global::kCraftingPoints:
 			return CraftingPoints ? CraftingPoints->value : 0.0f;
-		case Globals::kLearningPoints:
+		case Global::kLearningPoints:
 			return LearningPoints ? LearningPoints->value : 0.0f;
-		case Globals::kTalentPoints:
+		case Global::kTalentPoints:
 			return TalentPoints ? TalentPoints->value : 0.0f;
 		default:
-			return 0;
+			return 0.0f;
 		}
 	}
 
 private:
-	float GetAttrValue(RE::ActorValue a_actorValue)
+	auto GetActorValue(ActorValue a_av) const
 	{
-		auto index = GetAttrIndex(a_actorValue);
-		return attrValue[index][kStat];
+		return actorValue[a_av][kStat];
 	}
 
-	float GetAttrBaseValue(RE::ActorValue a_actorValue)
+	auto GetBaseActorValue(ActorValue a_av) const
 	{
-		auto index = GetAttrIndex(a_actorValue);
-		return attrValue[index][kBase];
+		return actorValue[a_av][kBase];
 	}
 
-	float GetAttrMod(RE::ActorValue a_actorValue)
+	auto GetActorValueMod(ActorValue a_av) const
 	{
-		auto index = GetAttrIndex(a_actorValue);
-		return attrValue[index][kStat] - attrValue[index][kBase];
+		return actorValue[a_av][kStat] - actorValue[a_av][kBase];
 	}
 
-	void UpdateAttribute(RE::ActorValue a_actorValue)
+	void UpdateActorValue(ActorValue a_av)
 	{
 		if (auto player = RE::PlayerCharacter::GetSingleton())
 		{
-			auto index = GetAttrIndex(a_actorValue);
-			attrValue[index][kStat] = player->GetActorValue(a_actorValue);
-			attrValue[index][kBase] = player->GetBaseActorValue(a_actorValue);
+			auto av = ConvertActorValue(a_av);
+			actorValue[a_av][kStat] = player->GetActorValue(av);
+			actorValue[a_av][kBase] = player->GetBaseActorValue(av);
 		}
 	}
 
-	void UpdateAttributes()
-	{
-		UpdateAttribute(RE::ActorValue::kHealth);
-		UpdateAttribute(RE::ActorValue::kMagicka);
-		UpdateAttribute(RE::ActorValue::kStamina);
-		UpdateAttribute(RE::ActorValue::kLastFlattered);
-	}
-
-private:
-	float GetStatValue(RE::ActorValue a_actorValue)
-	{
-		auto index = GetStatIndex(a_actorValue);
-		return statValue[index][kStat];
-	}
-
-	float GetStatBaseValue(RE::ActorValue a_actorValue)
-	{
-		auto index = GetStatIndex(a_actorValue);
-		return statValue[index][kBase];
-	}
-
-	float GetStatMod(RE::ActorValue a_actorValue)
-	{
-		auto index = GetStatIndex(a_actorValue);
-		return statValue[index][kStat] - statValue[index][kBase];
-	}
-
-	void UpdateStatValue(RE::ActorValue a_actorValue)
+	void UpdateActorValues()
 	{
 		if (auto player = RE::PlayerCharacter::GetSingleton())
 		{
-			auto index = GetStatIndex(a_actorValue);
-			statValue[index][kStat] = player->GetActorValue(a_actorValue);
-			statValue[index][kBase] = player->GetBaseActorValue(a_actorValue);
+			for (auto i = 0; i < ActorValueTotal; i++)
+			{
+				auto av = ConvertActorValue(i);
+				actorValue[i][kStat] = player->GetActorValue(av);
+				actorValue[i][kBase] = player->GetBaseActorValue(av);
+			}
 		}
-	}
-
-	void UpdateStatValues()
-	{
-		UpdateStatValue(RE::ActorValue::kOneHanded);
-		UpdateStatValue(RE::ActorValue::kTwoHanded);
-		UpdateStatValue(RE::ActorValue::kArchery);
-		UpdateStatValue(RE::ActorValue::kBlock);
-		UpdateStatValue(RE::ActorValue::kSmithing);
-		UpdateStatValue(RE::ActorValue::kHeavyArmor);
-		UpdateStatValue(RE::ActorValue::kLightArmor);
-		UpdateStatValue(RE::ActorValue::kPickpocket);
-		UpdateStatValue(RE::ActorValue::kLockpicking);
-		UpdateStatValue(RE::ActorValue::kSneak);
-		UpdateStatValue(RE::ActorValue::kAlchemy);
-		UpdateStatValue(RE::ActorValue::kSpeech);
-		UpdateStatValue(RE::ActorValue::kAlteration);
-		UpdateStatValue(RE::ActorValue::kConjuration);
-		UpdateStatValue(RE::ActorValue::kDestruction);
-		UpdateStatValue(RE::ActorValue::kIllusion);
-		UpdateStatValue(RE::ActorValue::kRestoration);
-		UpdateStatValue(RE::ActorValue::kEnchanting);
 	}
 
 private:
@@ -220,29 +247,30 @@ private:
 		playerClass = a_name;
 	}
 
+private:
+	class UpdateClassNameCallback :
+		public RE::BSScript::IStackCallbackFunctor
+	{
+	public:
+		virtual void operator()(RE::BSScript::Variable a_result) override
+		{
+			if (a_result.IsString())
+				Manager::GetSingleton()->SetClassName(a_result.GetString());
+		}
+
+		virtual bool CanSave() const override { return false; }
+		virtual void SetObject(const RE::BSTSmartPointer<RE::BSScript::Object>&) override { return; }
+	};
+
 	void UpdateClassName()
 	{
-		class UpdateClassNameCallback :
-			public RE::BSScript::IStackCallbackFunctor
-		{
-		public:
-			virtual void operator()(RE::BSScript::Variable a_result) override
-			{
-				if (a_result.IsString())
-					Manager::GetSingleton()->SetClassName(a_result.GetString());
-			}
-
-			virtual bool CanSave() const override { return false; }
-			virtual void SetObject(const RE::BSTSmartPointer<RE::BSScript::Object>&) override { return; }
-		};
-
 		RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> callback{ new UpdateClassNameCallback };
 		if (auto vm = RE::BSScript::Internal::VirtualMachine::GetSingleton())
 			vm->DispatchStaticCall("EnderalFunctions", "GetPlayerClassNameGlobal", RE::MakeFunctionArguments(), callback);
 	}
 
 private:
-	std::int32_t CalculateGoldCost(std::int32_t a_base)
+	std::int32_t CalculateGoldCost(std::int32_t a_cost)
 	{
 		auto mod{ 1.0f };
 		if (auto player = RE::PlayerCharacter::GetSingleton())
@@ -260,7 +288,7 @@ private:
 					bml = setting->GetFloat();
 			}
 
-			mod = std::max(bmi, max - (max - min) * (std::min(GetStatValue(RE::ActorValue::kSpeech), 100.0f) / 100.0f));
+			mod = std::max(bmi, max - (max - min) * (std::min(GetActorValue(kRhetoric), 100.0f) / 100.0f));
 			RE::BGSEntryPoint::HandleEntryPoint(
 				RE::BGSEntryPoint::ENTRY_POINT::kModBuyPrices,
 				player,
@@ -276,39 +304,35 @@ private:
 			if (Settings::GetSingleton()->ApplyMesmerizeBonus)
 			{
 				if (Mesmerize03 && player->HasSpell(Mesmerize03))
-					mod *= 1.0f + ((GetStatValue(RE::ActorValue::kIllusion) / 6.0f) + 14.0f) / 100.0f;
+					mod *= 1.0f + ((GetActorValue(kPsionics) / 6.0f) + 14.0f) / 100.0f;
 				else if (Mesmerize02 && player->HasSpell(Mesmerize02))
-					mod *= 1.0f + ((GetStatValue(RE::ActorValue::kIllusion) / 6.0f) + 10.0f) / 100.0f;
+					mod *= 1.0f + ((GetActorValue(kPsionics) / 6.0f) + 10.0f) / 100.0f;
 				else if (Mesmerize01 && player->HasSpell(Mesmerize01))
-					mod *= 1.0f + ((GetStatValue(RE::ActorValue::kIllusion) / 6.0f) + 07.0f) / 100.0f;
+					mod *= 1.0f + ((GetActorValue(kPsionics) / 6.0f) + 07.0f) / 100.0f;
 			}
 
 			mod = std::max(std::max(mod, bml), 1.0f);
 		}
 
-		return static_cast<std::int32_t>(roundf(a_base * mod));
+		return static_cast<std::int32_t>(roundf(a_cost * mod));
 	}
 
-	std::int32_t GetGoldCost(RE::ActorValue a_actorValue, Book a_book)
+	std::int32_t GetGoldCost(ActorValue a_av, Level a_idx)
 	{
-		auto index = GetStatIndex(a_actorValue);
-		return CalculateGoldCost(bookValue[index][a_book]);
+		return CalculateGoldCost(bookCost[a_av][a_idx]);
 	}
 
-	std::int32_t GetGoldCost(RE::ActorValue a_actorValue)
+	std::int32_t GetGoldCost(ActorValue a_av)
 	{
-		auto value{ 0.0f };
-		if (auto player = RE::PlayerCharacter::GetSingleton())
-			value = player->GetBaseActorValue(a_actorValue);
-
+		auto value = GetActorValue(a_av);
 		if (value < 25)
-			return GetGoldCost(a_actorValue, Book::kApprentice);
+			return GetGoldCost(a_av, kApprentice);
 		else if (value < 50)
-			return GetGoldCost(a_actorValue, Book::kAdept);
+			return GetGoldCost(a_av, kAdept);
 		else if (value < 75)
-			return GetGoldCost(a_actorValue, Book::kExpert);
+			return GetGoldCost(a_av, kExpert);
 		else
-			return GetGoldCost(a_actorValue, Book::kMaster);
+			return GetGoldCost(a_av, kMaster);
 	}
 
 private:
@@ -322,66 +346,65 @@ private:
 		UpdatePlayerGold();
 	}
 
-	void ModGlobal(RE::TESGlobal* a_global, std::int32_t a_mod)
+	void ModGlobal(RE::TESGlobal* a_global, float a_mod)
 	{
 		if (a_global)
 			a_global->value -= a_mod;
 	}
 
-	void ModValue(RE::ActorValue a_actorValue, std::int32_t a_mod)
+	void ModValue(ActorValue a_av, float a_mod)
 	{
 		if (auto player = RE::PlayerCharacter::GetSingleton())
-			player->ModBaseActorValue(a_actorValue, static_cast<float>(a_mod));
-		UpdateStatValue(a_actorValue);
+			player->ModBaseActorValue(ConvertActorValue(a_av), a_mod);
+		UpdateActorValue(a_av);
 	}
 
 private:
-	void IncreaseLearningSkill(RE::ActorValue a_actorValue, std::int32_t a_cost)
+	void IncreaseLearningSkill(ActorValue a_av, std::int32_t a_cost)
 	{
 		if (!Settings::GetSingleton()->IgnoreLearningGold)
 			ModGold(a_cost);
 		if (!Settings::GetSingleton()->IgnoreLearningPoints)
-			ModGlobal(LearningPoints, 1);
-		ModValue(a_actorValue, 1);
-		UpdateMenuData();
+			ModGlobal(LearningPoints, 1.0f);
+		ModValue(a_av, 1.0f);
+		UpdateMenu();
 	}
 
-	void IncreaseCraftingSkill(RE::ActorValue a_actorValue, std::int32_t a_cost)
+	void IncreaseCraftingSkill(ActorValue a_av, std::int32_t a_cost)
 	{
 		if (!Settings::GetSingleton()->IgnoreCraftingGold)
 			ModGold(a_cost);
 		if (!Settings::GetSingleton()->IgnoreCraftingPoints)
-			ModGlobal(CraftingPoints, 1);
-		ModValue(a_actorValue, 1);
-		UpdateMenuData();
+			ModGlobal(CraftingPoints, 1.0f);
+		ModValue(a_av, 1.0f);
+		UpdateMenu();
 	}
 
-public:
-	void IncreaseSkill(RE::ActorValue a_actorValue, std::int32_t a_cost)
+	void IncreaseSkill(ActorValue a_av, std::int32_t a_cost)
 	{
-		switch (a_actorValue)
+		switch (a_av)
 		{
-		case RE::ActorValue::kOneHanded:
-		case RE::ActorValue::kTwoHanded:
-		case RE::ActorValue::kArchery:
-		case RE::ActorValue::kBlock:
-		case RE::ActorValue::kHeavyArmor:
-		case RE::ActorValue::kLightArmor:
-		case RE::ActorValue::kSneak:
-		case RE::ActorValue::kAlteration:
-		case RE::ActorValue::kConjuration:
-		case RE::ActorValue::kDestruction:
-		case RE::ActorValue::kIllusion:
-		case RE::ActorValue::kRestoration:
-			IncreaseLearningSkill(a_actorValue, a_cost);
+		case kOneHanded:
+		case kTwoHanded:
+		case kMarksman:
+		case kBlock:
+		case kHeavyArmor:
+		case kLightArmor:
+		case kSneak:
+		case kMentalism:
+		case kEntropy:
+		case kElementalism:
+		case kPsionics:
+		case kLightMagic:
+			IncreaseLearningSkill(a_av, a_cost);
 			break;
-		case RE::ActorValue::kSmithing:
-		case RE::ActorValue::kPickpocket:
-		case RE::ActorValue::kLockpicking:
-		case RE::ActorValue::kAlchemy:
-		case RE::ActorValue::kSpeech:
-		case RE::ActorValue::kEnchanting:
-			IncreaseCraftingSkill(a_actorValue, a_cost);
+		case kHandicraft:
+		case kSlightOfHand:
+		case kLockpicking:
+		case kAlchemy:
+		case kRhetoric:
+		case kEnchanting:
+			IncreaseCraftingSkill(a_av, a_cost);
 			break;
 		}
 	}
@@ -395,29 +418,31 @@ private:
 
 	public:
 		HeroMessageBoxCallback() = delete;
-		HeroMessageBoxCallback(RE::ActorValue a_actorValue, std::int32_t a_cost) :
-			m_actorValue(a_actorValue),
+		HeroMessageBoxCallback(ActorValue a_av, std::int32_t a_cost) :
+			m_actorValue(a_av),
 			m_cost(a_cost)
-		{}
+		{
+			Manager::GetSingleton()->SetOverrideMessage(true);
+		}
 
 		virtual void Run(std::uint8_t a_button) override
 		{
 			if (a_button == 0)
 				Manager::GetSingleton()->IncreaseSkill(m_actorValue, m_cost);
-			Manager::GetSingleton()->ResetOverrideMessage();
+			Manager::GetSingleton()->SetOverrideMessage(false);
 		}
 
 	private:
-		RE::ActorValue m_actorValue{};
-		std::int32_t   m_cost{};
+		ActorValue   m_actorValue{};
+		std::int32_t m_cost{};
 	};
 
-	void RequestCallback(RE::ActorValue a_actorValue, std::int32_t a_cost, bool a_learning)
+	void RequestCallback(ActorValue a_av, std::int32_t a_cost, bool a_learning)
 	{
 		// clang-format off
 		auto text = std::format(
 			"Do you want to increase {}?\n\nPrice: {}p, 1 {} Point\n\nCurrent Pennies: {}\n Current {} Points: {}"sv,
-			a_actorValue,
+			a_av,
 			a_cost,
 			(a_learning ? "Learning"sv : "Crafting"sv),
 			playerGold,
@@ -425,22 +450,20 @@ private:
 			(a_learning ? GetGlobalValue(kLearningPoints) : GetGlobalValue(kCraftingPoints)));
 
 		RE::BSString message{ text };
-		RE::BSTSmartPointer<RE::IMessageBoxCallback> call{ new HeroMessageBoxCallback(a_actorValue, a_cost) };
+		RE::BSTSmartPointer<RE::IMessageBoxCallback> call{ new HeroMessageBoxCallback(a_av, a_cost) };
 		RE::MessageBoxMenu::Create(message, call, 0, 25, 10, HeroMessageBoxCallback::Buttons);
 		// clang-format on
-
-		overrideMessage = true;
 	}
 
-	void TryIncreaseLearningSkill(RE::ActorValue a_actorValue)
+	void TryIncreaseLearningSkill(ActorValue a_av)
 	{
-		auto cost = GetGoldCost(a_actorValue);
+		auto cost = GetGoldCost(a_av);
 		if (!Settings::GetSingleton()->IgnoreLearningGold &&
 			cost > playerGold)
 		{
 			auto message = std::format(
 				"You do not have enough pennies to increase {}!\nPrice: {}p"sv,
-				a_actorValue, cost);
+				a_av, cost);
 			return RE::DebugMessageBox(message.c_str());
 		}
 
@@ -449,24 +472,25 @@ private:
 		{
 			auto message = std::format(
 				"You do not have enough Learning Points to increase {}!"sv,
-				a_actorValue);
+				a_av);
 			return RE::DebugMessageBox(message.c_str());
 		}
 
 		if (!Settings::GetSingleton()->SkipCallback)
-			return RequestCallback(a_actorValue, cost, true);
-		IncreaseLearningSkill(a_actorValue, cost);
+			RequestCallback(a_av, cost, true);
+		else
+			IncreaseLearningSkill(a_av, cost);
 	}
 
-	void TryIncreaseCraftingSkill(RE::ActorValue a_actorValue)
+	void TryIncreaseCraftingSkill(ActorValue a_av)
 	{
-		auto cost = GetGoldCost(a_actorValue);
+		auto cost = GetGoldCost(a_av);
 		if (!Settings::GetSingleton()->IgnoreCraftingGold &&
 			cost > playerGold)
 		{
 			auto message = std::format(
 				"You do not have enough pennies to increase {}!\nPrice: {}p"sv,
-				a_actorValue, cost);
+				a_av, cost);
 			return RE::DebugMessageBox(message.c_str());
 		}
 
@@ -475,89 +499,87 @@ private:
 		{
 			auto message = std::format(
 				"You do not have enough Crafting Points to increase {}!"sv,
-				a_actorValue);
+				a_av);
 			return RE::DebugMessageBox(message.c_str());
 		}
 
 		if (!Settings::GetSingleton()->SkipCallback)
-			return RequestCallback(a_actorValue, cost, false);
-		IncreaseCraftingSkill(a_actorValue, cost);
+			RequestCallback(a_av, cost, false);
+		else
+			IncreaseCraftingSkill(a_av, cost);
 	}
 
 public:
-	void TryIncreaseSkill(RE::ActorValue a_actorValue)
+	void TryIncreaseSkill(ActorValue a_av)
 	{
-		if (GetStatBaseValue(a_actorValue) >= 100.0f)
+		if (GetBaseActorValue(a_av) >= 100.0f)
 		{
-			auto message = std::format("You cannot increase {} further.", a_actorValue);
+			auto message = std::format("You cannot increase {} further.", a_av);
 			return RE::DebugMessageBox(message.c_str());
 		}
 
-		switch (a_actorValue)
+		switch (a_av)
 		{
-		case RE::ActorValue::kOneHanded:
-		case RE::ActorValue::kTwoHanded:
-		case RE::ActorValue::kArchery:
-		case RE::ActorValue::kBlock:
-		case RE::ActorValue::kHeavyArmor:
-		case RE::ActorValue::kLightArmor:
-		case RE::ActorValue::kSneak:
-		case RE::ActorValue::kAlteration:
-		case RE::ActorValue::kConjuration:
-		case RE::ActorValue::kDestruction:
-		case RE::ActorValue::kIllusion:
-		case RE::ActorValue::kRestoration:
-			TryIncreaseLearningSkill(a_actorValue);
+		case kOneHanded:
+		case kTwoHanded:
+		case kMarksman:
+		case kBlock:
+		case kHeavyArmor:
+		case kLightArmor:
+		case kSneak:
+		case kMentalism:
+		case kEntropy:
+		case kElementalism:
+		case kPsionics:
+		case kLightMagic:
+			TryIncreaseLearningSkill(a_av);
 			break;
-		case RE::ActorValue::kSmithing:
-		case RE::ActorValue::kPickpocket:
-		case RE::ActorValue::kLockpicking:
-		case RE::ActorValue::kAlchemy:
-		case RE::ActorValue::kSpeech:
-		case RE::ActorValue::kEnchanting:
-			TryIncreaseCraftingSkill(a_actorValue);
+		case kHandicraft:
+		case kSlightOfHand:
+		case kLockpicking:
+		case kAlchemy:
+		case kRhetoric:
+		case kEnchanting:
+			TryIncreaseCraftingSkill(a_av);
 			break;
 		}
 	}
 
-	void TryIncreaseSkill(std::int32_t a_actorValue)
+	void TryIncreaseSkill(std::int32_t a_av)
 	{
-		TryIncreaseSkill(static_cast<RE::ActorValue>(a_actorValue));
+		TryIncreaseSkill(static_cast<ActorValue>(a_av));
 	}
 
 private:
-	void UpdateBookValue(std::int32_t* a_value, std::array<std::uint32_t, kBookTotal> a_forms)
+	void UpdateBookValue(ActorValue a_av)
 	{
-		for (auto i = 0; i < kBookTotal; i++)
+		for (std::int32_t i = 0; i < LevelTotal; i++)
 		{
-			if (auto form = RE::TESForm::LookupByID(a_forms[i]);
-				form && form->Is(RE::FormType::AlchemyItem))
-			{
-				a_value[i] = form->GetGoldValue();
-			}
+			if (auto form = RE::TESForm::LookupByID(bookForm[a_av][i]))
+				bookCost[a_av][i] = form->GetGoldValue();
 		}
 	}
 
 	void UpdateBookValues()
 	{
-		UpdateBookValue(bookValue[0], Forms_OneHanded);
-		UpdateBookValue(bookValue[1], Forms_TwoHanded);
-		UpdateBookValue(bookValue[2], Forms_Marksman);
-		UpdateBookValue(bookValue[3], Forms_Block);
-		UpdateBookValue(bookValue[4], Forms_Smithing);
-		UpdateBookValue(bookValue[5], Forms_HeavyArmor);
-		UpdateBookValue(bookValue[6], Forms_LightArmor);
-		UpdateBookValue(bookValue[7], Forms_Pickpocket);
-		UpdateBookValue(bookValue[8], Forms_Lockpicking);
-		UpdateBookValue(bookValue[9], Forms_Speech);
-		UpdateBookValue(bookValue[10], Forms_Alchemy);
-		UpdateBookValue(bookValue[11], Forms_Sneak);
-		UpdateBookValue(bookValue[12], Forms_Alteration);
-		UpdateBookValue(bookValue[13], Forms_Conjuration);
-		UpdateBookValue(bookValue[14], Forms_Destruction);
-		UpdateBookValue(bookValue[15], Forms_Illusion);
-		UpdateBookValue(bookValue[16], Forms_Restoration);
-		UpdateBookValue(bookValue[17], Forms_Enchanting);
+		UpdateBookValue(kOneHanded);
+		UpdateBookValue(kTwoHanded);
+		UpdateBookValue(kMarksman);
+		UpdateBookValue(kBlock);
+		UpdateBookValue(kHandicraft);
+		UpdateBookValue(kHeavyArmor);
+		UpdateBookValue(kLightArmor);
+		UpdateBookValue(kSlightOfHand);
+		UpdateBookValue(kLockpicking);
+		UpdateBookValue(kRhetoric);
+		UpdateBookValue(kAlchemy);
+		UpdateBookValue(kSneak);
+		UpdateBookValue(kMentalism);
+		UpdateBookValue(kEntropy);
+		UpdateBookValue(kElementalism);
+		UpdateBookValue(kPsionics);
+		UpdateBookValue(kLightMagic);
+		UpdateBookValue(kEnchanting);
 	}
 
 private:
@@ -579,7 +601,7 @@ public:
 	}
 
 private:
-	float CalculateNeededExpPoints(float a_level, float a_slope, float a_mult, float a_expAcc = 1.0f, float a_expAcc20 = 1.2f, float a_expAcc30 = 1.5f, float a_expAcc40 = 2.0f)
+	auto CalculateNeededExpPoints(float a_level, float a_slope, float a_mult, float a_expAcc = 1.0f, float a_expAcc20 = 1.2f, float a_expAcc30 = 1.5f, float a_expAcc40 = 2.0f)
 	{
 		auto result = powf(std::min(a_level, 20.0f), a_slope) * a_mult * a_expAcc;
 		if (a_level <= 20)
@@ -598,7 +620,7 @@ private:
 	}
 
 private:
-	void UpdateMenuData()
+	void UpdateMenu()
 	{
 		auto ui = RE::UI::GetSingleton();
 		if (!ui)
@@ -614,44 +636,56 @@ private:
 		// SetIntValues
 		{
 			RE::GFxValue args[33];
-			args[0] = GetAttrBaseValue(RE::ActorValue::kHealth);
-			args[1] = GetAttrValue(RE::ActorValue::kHealth);
-			args[2] = GetAttrBaseValue(RE::ActorValue::kMagicka);
-			args[3] = GetAttrValue(RE::ActorValue::kMagicka);
-			args[4] = GetAttrBaseValue(RE::ActorValue::kStamina);
-			args[5] = GetAttrValue(RE::ActorValue::kStamina);
-			args[6] = -GetAttrValue(RE::ActorValue::kLastFlattered);
+			// Health
+			args[0] = GetBaseActorValue(kHealth);
+			args[1] = GetActorValue(kHealth);
+
+			// Mana
+			args[2] = GetBaseActorValue(kMana);
+			args[3] = GetActorValue(kMana);
+
+			// Stamina
+			args[4] = GetBaseActorValue(kStamina);
+			args[5] = GetActorValue(kStamina);
+
+			// Arcane Fever
+			args[6] = -GetActorValue(kArcaneFever);
+
+			// Globals
 			args[7] = GetGlobalValue(kPlayerNeededXP);
 			args[8] = GetGlobalValue(kPlayerXP);
 			args[9] = GetGlobalValue(kPlayerLevel);
 			args[10] = GetGlobalValue(kLearningPoints);
 			args[11] = GetGlobalValue(kCraftingPoints);
 			args[12] = GetGlobalValue(kTalentPoints);
-			args[13] = GetStatBaseValue(RE::ActorValue::kIllusion);
-			args[14] = GetStatBaseValue(RE::ActorValue::kDestruction);
-			args[15] = GetStatBaseValue(RE::ActorValue::kAlteration);
-			args[16] = GetStatBaseValue(RE::ActorValue::kOneHanded);
-			args[17] = GetStatBaseValue(RE::ActorValue::kBlock);
-			args[18] = GetStatBaseValue(RE::ActorValue::kArchery);
-			args[19] = GetStatBaseValue(RE::ActorValue::kConjuration);
-			args[20] = GetStatBaseValue(RE::ActorValue::kRestoration);
-			args[21] = GetStatBaseValue(RE::ActorValue::kTwoHanded);
-			args[22] = GetStatBaseValue(RE::ActorValue::kLightArmor);
-			args[23] = GetStatBaseValue(RE::ActorValue::kHeavyArmor);
-			args[24] = GetStatBaseValue(RE::ActorValue::kSneak);
-			args[25] = GetStatBaseValue(RE::ActorValue::kAlchemy);
-			args[26] = GetStatBaseValue(RE::ActorValue::kPickpocket);
-			args[27] = GetStatBaseValue(RE::ActorValue::kLockpicking);
-			args[28] = GetStatBaseValue(RE::ActorValue::kEnchanting);
-			args[29] = GetStatBaseValue(RE::ActorValue::kSmithing);
-			args[30] = GetStatBaseValue(RE::ActorValue::kSpeech);
 
-			auto level = GetGlobalValue(kPlayerLevel);
-			auto expMultSlope = GetGlobalValue(kExpMultSlope);
-			auto expMult = GetGlobalValue(kExpMult);
+			// Skills
+			args[13] = GetBaseActorValue(kPsionics);
+			args[14] = GetBaseActorValue(kElementalism);
+			args[15] = GetBaseActorValue(kMentalism);
+			args[16] = GetBaseActorValue(kOneHanded);
+			args[17] = GetBaseActorValue(kBlock);
+			args[18] = GetBaseActorValue(kMarksman);
+			args[19] = GetBaseActorValue(kEntropy);
+			args[20] = GetBaseActorValue(kLightMagic);
+			args[21] = GetBaseActorValue(kTwoHanded);
+			args[22] = GetBaseActorValue(kLightArmor);
+			args[23] = GetBaseActorValue(kHeavyArmor);
+			args[24] = GetBaseActorValue(kSneak);
+			args[25] = GetBaseActorValue(kAlchemy);
+			args[26] = GetBaseActorValue(kSlightOfHand);
+			args[27] = GetBaseActorValue(kLockpicking);
+			args[28] = GetBaseActorValue(kEnchanting);
+			args[29] = GetBaseActorValue(kHandicraft);
+			args[30] = GetBaseActorValue(kRhetoric);
+
+			auto level = GetGlobalValue(Global::kPlayerLevel);
+			auto expMultSlope = GetGlobalValue(Global::kExpMultSlope);
+			auto expMult = GetGlobalValue(Global::kExpMult);
 			auto expNeededForCurrentLevel = CalculateNeededExpPoints(level - 1, expMultSlope, expMult);
 			auto expNeededForNextLevel = CalculateNeededExpPoints(level, expMultSlope, expMult);
 
+			// XP
 			args[31] = GetGlobalValue(kPlayerXP) - expNeededForCurrentLevel;
 			args[32] = expNeededForNextLevel - expNeededForCurrentLevel;
 			view->Invoke("heromenu_mc.SetIntValues", nullptr, args, 33);
@@ -660,57 +694,33 @@ private:
 		// SetModifier
 		{
 			RE::GFxValue args[21];
-			args[0] = GetAttrMod(RE::ActorValue::kHealth);
-			args[1] = GetAttrMod(RE::ActorValue::kMagicka);
-			args[2] = GetAttrMod(RE::ActorValue::kStamina);
-			args[3] = GetStatMod(RE::ActorValue::kIllusion);
-			args[4] = GetStatMod(RE::ActorValue::kDestruction);
-			args[5] = GetStatMod(RE::ActorValue::kAlteration);
-			args[6] = GetStatMod(RE::ActorValue::kOneHanded);
-			args[7] = GetStatMod(RE::ActorValue::kBlock);
-			args[8] = GetStatMod(RE::ActorValue::kArchery);
-			args[9] = GetStatMod(RE::ActorValue::kConjuration);
-			args[10] = GetStatMod(RE::ActorValue::kRestoration);
-			args[11] = GetStatMod(RE::ActorValue::kTwoHanded);
-			args[12] = GetStatMod(RE::ActorValue::kLightArmor);
-			args[13] = GetStatMod(RE::ActorValue::kHeavyArmor);
-			args[14] = GetStatMod(RE::ActorValue::kSneak);
-			args[15] = GetStatMod(RE::ActorValue::kAlchemy);
-			args[16] = GetStatMod(RE::ActorValue::kPickpocket);
-			args[17] = GetStatMod(RE::ActorValue::kLockpicking);
-			args[18] = GetStatMod(RE::ActorValue::kEnchanting);
-			args[19] = GetStatMod(RE::ActorValue::kSmithing);
-			args[20] = GetStatMod(RE::ActorValue::kSpeech);
+			// Attributes
+			args[0] = GetActorValueMod(kHealth);
+			args[1] = GetActorValueMod(kMana);
+			args[2] = GetActorValueMod(kStamina);
+
+			// Skills
+			args[3] = GetActorValueMod(kPsionics);
+			args[4] = GetActorValueMod(kElementalism);
+			args[5] = GetActorValueMod(kMentalism);
+			args[6] = GetActorValueMod(kOneHanded);
+			args[7] = GetActorValueMod(kBlock);
+			args[8] = GetActorValueMod(kMarksman);
+			args[9] = GetActorValueMod(kEntropy);
+			args[10] = GetActorValueMod(kLightMagic);
+			args[11] = GetActorValueMod(kTwoHanded);
+			args[12] = GetActorValueMod(kLightArmor);
+			args[13] = GetActorValueMod(kHeavyArmor);
+			args[14] = GetActorValueMod(kSneak);
+			args[15] = GetActorValueMod(kAlchemy);
+			args[16] = GetActorValueMod(kSlightOfHand);
+			args[17] = GetActorValueMod(kLockpicking);
+			args[18] = GetActorValueMod(kEnchanting);
+			args[19] = GetActorValueMod(kHandicraft);
+			args[20] = GetActorValueMod(kRhetoric);
 			view->Invoke("heromenu_mc.SetModifier", nullptr, args, 21);
 		}
 	}
-
-private:
-	float        attrValue[4][kStatTotal]{};
-	float        statValue[18][kStatTotal]{};
-	std::int32_t bookValue[18][kBookTotal]{};
-	std::string  playerName{};
-	std::string  playerNameGold{};
-	std::string  playerClass{};
-	std::int32_t playerGold{};
-
-private:
-	RE::BGSPerk*       Seducer{ nullptr };
-	RE::SpellItem*     Mesmerize01{ nullptr };
-	RE::SpellItem*     Mesmerize02{ nullptr };
-	RE::SpellItem*     Mesmerize03{ nullptr };
-	RE::TESGlobal*     EXPMult{ nullptr };
-	RE::TESGlobal*     EXPMultSlope{ nullptr };
-	RE::TESGlobal*     PlayerXP{ nullptr };
-	RE::TESGlobal*     PlayerNeededXP{ nullptr };
-	RE::TESGlobal*     PlayerLevel{ nullptr };
-	RE::TESGlobal*     CraftingPoints{ nullptr };
-	RE::TESGlobal*     LearningPoints{ nullptr };
-	RE::TESGlobal*     TalentPoints{ nullptr };
-	RE::TESObjectMISC* Gold001{ nullptr };
-
-private:
-	bool overrideMessage{ false };
 
 private:
 	void UpdateForms()
@@ -736,22 +746,54 @@ private:
 	}
 
 private:
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_OneHanded{ 0x031ACC, 0x031ACE, 0x033A5F, 0x039935 };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_TwoHanded{ 0x039936, 0x039937, 0x039938, 0x039939 };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Marksman{ 0x085641, 0x085643, 0x085644, 0x085642 };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Block{ 0x039941, 0x039942, 0x039943, 0x039944 };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Smithing{ 0x0E7632, 0x0E7633, 0x0E7634, 0x0E7635 };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_HeavyArmor{ 0x03F86A, 0x03F86B, 0x03F86C, 0x03F86D };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_LightArmor{ 0x0E75F3, 0x0E75F4, 0x0E75F0, 0x0E75F2 };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Pickpocket{ 0x0E762E, 0x0E762F, 0x0E7630, 0x0E7631 };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Lockpicking{ 0x0E762A, 0x0E762B, 0x0E762C, 0x0E762D };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Speech{ 0x0E7636, 0x0E7637, 0x0E7638, 0x0E7639 };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Alchemy{ 0x0E7622, 0x0E7623, 0x0E7624, 0x0E7625 };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Sneak{ 0x08591F, 0x08591E, 0x08591D, 0x08591B };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Alteration{ 0x085618, 0x085619, 0x08561A, 0x08561B };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Conjuration{ 0x085621, 0x085622, 0x085620, 0x085623 };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Destruction{ 0x085614, 0x085615, 0x085616, 0x085617 };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Illusion{ 0x08561C, 0x08561D, 0x08561E, 0x08561F };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Restoration{ 0x085624, 0x085625, 0x085626, 0x085627 };
-	static constexpr std::array<std::uint32_t, kBookTotal> Forms_Enchanting{ 0x0E7626, 0x0E7627, 0x0E7628, 0x0E7629 };
+	float actorValue[ActorValueTotal][IndexTotal]{};
+
+private:
+	std::int32_t playerGold{};
+	std::string  playerName{};
+	std::string  playerNameGold{};
+	std::string  playerClass{};
+
+private:
+	std::int32_t bookCost[SkillTotal][LevelTotal]{};
+
+private:
+	RE::BGSPerk*       Seducer{ nullptr };
+	RE::SpellItem*     Mesmerize01{ nullptr };
+	RE::SpellItem*     Mesmerize02{ nullptr };
+	RE::SpellItem*     Mesmerize03{ nullptr };
+	RE::TESGlobal*     EXPMult{ nullptr };
+	RE::TESGlobal*     EXPMultSlope{ nullptr };
+	RE::TESGlobal*     PlayerXP{ nullptr };
+	RE::TESGlobal*     PlayerNeededXP{ nullptr };
+	RE::TESGlobal*     PlayerLevel{ nullptr };
+	RE::TESGlobal*     CraftingPoints{ nullptr };
+	RE::TESGlobal*     LearningPoints{ nullptr };
+	RE::TESGlobal*     TalentPoints{ nullptr };
+	RE::TESObjectMISC* Gold001{ nullptr };
+
+private:
+	bool overrideMessage{ false };
+
+private:
+	static constexpr std::array<std::array<std::uint32_t, LevelTotal>, SkillTotal> bookForm{
+		std::array<std::uint32_t, 4>{ 0x031ACC, 0x031ACE, 0x033A5F, 0x039935 },
+		std::array<std::uint32_t, 4>{ 0x039936, 0x039937, 0x039938, 0x039939 },
+		std::array<std::uint32_t, 4>{ 0x085641, 0x085643, 0x085644, 0x085642 },
+		std::array<std::uint32_t, 4>{ 0x039941, 0x039942, 0x039943, 0x039944 },
+		std::array<std::uint32_t, 4>{ 0x0E7632, 0x0E7633, 0x0E7634, 0x0E7635 },
+		std::array<std::uint32_t, 4>{ 0x03F86A, 0x03F86B, 0x03F86C, 0x03F86D },
+		std::array<std::uint32_t, 4>{ 0x0E75F3, 0x0E75F4, 0x0E75F0, 0x0E75F2 },
+		std::array<std::uint32_t, 4>{ 0x0E762E, 0x0E762F, 0x0E7630, 0x0E7631 },
+		std::array<std::uint32_t, 4>{ 0x0E762A, 0x0E762B, 0x0E762C, 0x0E762D },
+		std::array<std::uint32_t, 4>{ 0x0E7636, 0x0E7637, 0x0E7638, 0x0E7639 },
+		std::array<std::uint32_t, 4>{ 0x0E7622, 0x0E7623, 0x0E7624, 0x0E7625 },
+		std::array<std::uint32_t, 4>{ 0x08591F, 0x08591E, 0x08591D, 0x08591B },
+		std::array<std::uint32_t, 4>{ 0x085618, 0x085619, 0x08561A, 0x08561B },
+		std::array<std::uint32_t, 4>{ 0x085621, 0x085622, 0x085620, 0x085623 },
+		std::array<std::uint32_t, 4>{ 0x085614, 0x085615, 0x085616, 0x085617 },
+		std::array<std::uint32_t, 4>{ 0x08561C, 0x08561D, 0x08561E, 0x08561F },
+		std::array<std::uint32_t, 4>{ 0x085624, 0x085625, 0x085626, 0x085627 },
+		std::array<std::uint32_t, 4>{ 0x0E7626, 0x0E7627, 0x0E7628, 0x0E7629 },
+	};
 };
