@@ -65,7 +65,7 @@ namespace Hooks
 						if (auto buttonEvent = (*a_event)->AsButtonEvent();
 							buttonEvent && buttonEvent->IsDown())
 						{
-							if (Manager::GetSingleton()->QCallbackOpen())
+							if (Manager::GetSingleton()->QOverrideMessage())
 								return _ProcessEvent(a_this, a_event, a_source);
 
 							switch (buttonEvent->GetIDCode())

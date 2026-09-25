@@ -57,14 +57,14 @@ public:
 	}
 
 public:
-	bool QCallbackOpen() const
+	bool QOverrideMessage() const
 	{
-		return callbackOpen;
+		return overrideMessage;
 	}
 
-	void FinishCallback()
+	void ResetOverrideMessage()
 	{
-		callbackOpen = false;
+		overrideMessage = false;
 	}
 
 private:
@@ -241,36 +241,49 @@ private:
 private:
 	std::int32_t CalculateGoldCost(std::int32_t a_base)
 	{
-		auto val{ 1.0f }, mod{ 0.0f }, pow{ 0.0f }, perk{ 1.0f };
+		auto mod{ 1.0f };
 		if (auto player = RE::PlayerCharacter::GetSingleton())
 		{
-			val = player->GetActorValue(RE::ActorValue::kSpeech);
-			mod = player->GetActorValue(RE::ActorValue::kSpeechcraftModifier);
-			pow = player->GetActorValue(RE::ActorValue::kSpeechcraftPowerModifier);
+			auto min{ 1.3f }, max{ 3.3f }, bmi{ 1.05f }, bml{ 1.0f };
+			if (auto gmst = RE::GameSettingCollection::GetSingleton())
+			{
+				if (auto setting = gmst->GetSetting("fBarterMin"))
+					min = setting->GetFloat();
+				if (auto setting = gmst->GetSetting("fBarterMax"))
+					max = setting->GetFloat();
+				if (auto setting = gmst->GetSetting("fBarterBuyMin"))
+					bmi = setting->GetFloat();
+				if (auto setting = gmst->GetSetting("fMinBuyMult"))
+					bml = setting->GetFloat();
+			}
 
-			if (Devious01 && player->HasPerk(Devious01))
-				if (Devious02 && player->HasPerk(Devious02))
-					perk *= 0.88f;
-				else
-					perk *= 0.93f;
+			mod = std::max(bmi, max - (max - min) * (std::min(GetStatValue(RE::ActorValue::kSpeech), 100.0f) / 100.0f));
+			RE::BGSEntryPoint::HandleEntryPoint(
+				RE::BGSEntryPoint::ENTRY_POINT::kModBuyPrices,
+				player,
+				nullptr,
+				&mod);
 
 			if (Settings::GetSingleton()->ApplySeducerBonus)
-				if (Seducer01 && player->HasPerk(Seducer01))
-					perk *= 0.90f;
+			{
+				if (Seducer && player->HasPerk(Seducer))
+					mod *= 0.90f;
+			}
+
+			if (Settings::GetSingleton()->ApplyMesmerizeBonus)
+			{
+				if (Mesmerize03 && player->HasSpell(Mesmerize03))
+					mod *= 1.0f + ((GetStatValue(RE::ActorValue::kIllusion) / 6.0f) + 14.0f) / 100.0f;
+				else if (Mesmerize02 && player->HasSpell(Mesmerize02))
+					mod *= 1.0f + ((GetStatValue(RE::ActorValue::kIllusion) / 6.0f) + 10.0f) / 100.0f;
+				else if (Mesmerize01 && player->HasSpell(Mesmerize01))
+					mod *= 1.0f + ((GetStatValue(RE::ActorValue::kIllusion) / 6.0f) + 07.0f) / 100.0f;
+			}
+
+			mod = std::max(std::max(mod, bml), 1.0f);
 		}
 
-		float min{ 1.3f }, max{ 3.3f };
-		if (auto gmst = RE::GameSettingCollection::GetSingleton())
-		{
-			if (auto fBarterMin = gmst->GetSetting("fBarterMin"))
-				min = fBarterMin->GetFloat();
-			if (auto fBarterMax = gmst->GetSetting("fBarterMax"))
-				max = fBarterMax->GetFloat();
-		}
-
-		auto factor = max - (max - min) * (std::min(val, 100.0f) / 100.0f);
-		auto scalar = perk * (1.0f - mod / 100.0f) * (1.0f - pow / 100.0f);
-		return static_cast<std::int32_t>(roundf(a_base * factor * scalar));
+		return static_cast<std::int32_t>(roundf(a_base * mod));
 	}
 
 	std::int32_t GetGoldCost(RE::ActorValue a_actorValue, Book a_book)
@@ -406,7 +419,7 @@ private:
 		{
 			if (a_button == 0)
 				Manager::GetSingleton()->IncreaseSkill(m_actorValue, m_cost);
-			Manager::GetSingleton()->FinishCallback();
+			Manager::GetSingleton()->ResetOverrideMessage();
 		}
 
 	private:
@@ -431,7 +444,7 @@ private:
 		RE::MessageBoxMenu::Create(message, call, 0, 25, 10, HeroMessageBoxCallback::Buttons);
 		// clang-format on
 
-		callbackOpen = true;
+		overrideMessage = true;
 	}
 
 	void TryIncreaseLearningSkill(RE::ActorValue a_actorValue)
@@ -693,50 +706,44 @@ private:
 	std::int32_t playerGold{};
 
 private:
-	RE::BGSPerk* Devious01{ nullptr };
-	RE::BGSPerk* Devious02{ nullptr };
-	RE::BGSPerk* Seducer01{ nullptr };
-
-	RE::TESGlobal* EXPMult{ nullptr };
-	RE::TESGlobal* EXPMultSlope {nullptr};
-	RE::TESGlobal* PlayerXP{ nullptr };
-	RE::TESGlobal* PlayerNeededXP{ nullptr };
-	RE::TESGlobal* PlayerLevel{ nullptr };
-	RE::TESGlobal* CraftingPoints{ nullptr };
-	RE::TESGlobal* LearningPoints{ nullptr };
-	RE::TESGlobal* TalentPoints{ nullptr };
-
+	RE::BGSPerk*       Seducer{ nullptr };
+	RE::SpellItem*     Mesmerize01{ nullptr };
+	RE::SpellItem*     Mesmerize02{ nullptr };
+	RE::SpellItem*     Mesmerize03{ nullptr };
+	RE::TESGlobal*     EXPMult{ nullptr };
+	RE::TESGlobal*     EXPMultSlope{ nullptr };
+	RE::TESGlobal*     PlayerXP{ nullptr };
+	RE::TESGlobal*     PlayerNeededXP{ nullptr };
+	RE::TESGlobal*     PlayerLevel{ nullptr };
+	RE::TESGlobal*     CraftingPoints{ nullptr };
+	RE::TESGlobal*     LearningPoints{ nullptr };
+	RE::TESGlobal*     TalentPoints{ nullptr };
 	RE::TESObjectMISC* Gold001{ nullptr };
 
-	bool callbackOpen{ false };
+private:
+	bool overrideMessage{ false };
 
 private:
 	void UpdateForms()
 	{
-		Devious01 =
-			RE::TESForm::LookupByID<RE::BGSPerk>(0x00069D2E);
-		Devious02 =
-			RE::TESForm::LookupByID<RE::BGSPerk>(0x00085AB1);
-		Seducer01 =
-			RE::TESForm::LookupByID<RE::BGSPerk>(0x00069D3D);
-		EXPMult =
-			RE::TESForm::LookupByID<RE::TESGlobal>(0x00008D2B);
-		EXPMultSlope =
-			RE::TESForm::LookupByID<RE::TESGlobal>(0x000D0EDB);
-		PlayerXP =
-			RE::TESForm::LookupByID<RE::TESGlobal>(0x00012596);
-		PlayerNeededXP =
-			RE::TESForm::LookupByID<RE::TESGlobal>(0x00027CD1);
-		PlayerLevel =
-			RE::TESForm::LookupByID<RE::TESGlobal>(0x00012595);
-		CraftingPoints =
-			RE::TESForm::LookupByID<RE::TESGlobal>(0x00085A79);
-		LearningPoints =
-			RE::TESForm::LookupByID<RE::TESGlobal>(0x00031ACB);
-		TalentPoints =
-			RE::TESForm::LookupByID<RE::TESGlobal>(0x0005BCFA);
-		Gold001 =
-			RE::TESForm::LookupByID<RE::TESObjectMISC>(0x0000000F);
+		if (auto data = RE::TESDataHandler::GetSingleton())
+		{
+			// clang-format off
+			Seducer        = data->LookupForm<RE::BGSPerk>(0x069D3D, "Skyrim.esm"sv);
+			Mesmerize01    = data->LookupForm<RE::SpellItem>(0x01EFDA, "Enderal - Forgotten Stories.esm"sv);
+			Mesmerize02    = data->LookupForm<RE::SpellItem>(0x01EFDD, "Enderal - Forgotten Stories.esm"sv);
+			Mesmerize03    = data->LookupForm<RE::SpellItem>(0x01EFDE, "Enderal - Forgotten Stories.esm"sv);
+			EXPMult        = data->LookupForm<RE::TESGlobal>(0x008D2B, "Skyrim.esm"sv);
+			EXPMultSlope   = data->LookupForm<RE::TESGlobal>(0x0D0EDB, "Skyrim.esm"sv);
+			PlayerXP       = data->LookupForm<RE::TESGlobal>(0x012596, "Skyrim.esm"sv);
+			PlayerNeededXP = data->LookupForm<RE::TESGlobal>(0x027CD1, "Skyrim.esm"sv);
+			PlayerLevel    = data->LookupForm<RE::TESGlobal>(0x012595, "Skyrim.esm"sv);
+			CraftingPoints = data->LookupForm<RE::TESGlobal>(0x085A79, "Skyrim.esm"sv);
+			LearningPoints = data->LookupForm<RE::TESGlobal>(0x031ACB, "Skyrim.esm"sv);
+			TalentPoints   = data->LookupForm<RE::TESGlobal>(0x05BCFA, "Skyrim.esm"sv);
+			Gold001        = data->LookupForm<RE::TESObjectMISC>(0x00000F, "Skyrim.esm"sv);
+			// clang-format on
+		}
 	}
 
 private:

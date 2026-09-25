@@ -5,6 +5,7 @@ namespace Settings
 	struct SettingsImpl
 	{
 		bool ApplySeducerBonus{ false };
+		bool ApplyMesmerizeBonus{ false };
 		bool IgnoreGold{ false };
 		bool IgnorePoints{ false };
 		bool SkipCallback{ false };
