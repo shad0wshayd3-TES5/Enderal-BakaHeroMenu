@@ -64,7 +64,7 @@ private:
 		kRavager,
 		kScourgeOfTheWilds,
 		kSoulcaller,
-		AffinTotal,
+		AffinityTotal,
 	};
 
 	enum Class
@@ -302,6 +302,8 @@ private:
 			auto av = ConvertActorValue(a_av);
 			actorValue[a_av][kVal] = player->GetActorValue(av);
 			actorValue[a_av][kMin] = player->GetBaseActorValue(av);
+			if (a_av < kHealth)
+				return;
 			actorValue[a_av][kMax] = player->GetActorValueMax(av);
 		}
 	}
@@ -315,6 +317,8 @@ private:
 				auto av = ConvertActorValue(i);
 				actorValue[i][kVal] = player->GetActorValue(av);
 				actorValue[i][kMin] = player->GetBaseActorValue(av);
+				if (i < kHealth)
+					continue;
 				actorValue[i][kMax] = player->GetActorValueMax(av);
 			}
 		}
@@ -381,7 +385,7 @@ private:
 		UpdateClassInfo();
 		if (playerClassIndex >= 0)
 		{
-			playerClass = affinName[playerClassIndex][playerGender];
+			playerClass = affinityName[playerClassIndex][playerGender];
 		}
 		else
 		{
@@ -827,13 +831,13 @@ private:
 private:
 	void LoadAffinityNames(RE::TESDataHandler* a_data)
 	{
-		for (auto i = 0; i < AffinTotal; i++)
+		for (auto i = 0; i < AffinityTotal; i++)
 		{
 			for (auto j = 0; j < GenderTotal; j++)
 			{
-				auto& [formID, file] = affinForms[i][j];
+				auto& [formID, file] = affinityForms[i][j];
 				if (auto form = a_data->LookupForm(formID, file))
-					affinName[i][j] = form->GetName();
+					affinityName[i][j] = form->GetName();
 			}
 		}
 	}
@@ -875,7 +879,10 @@ private:
 	// clang-format on
 
 private:
-	float actorValue[ActorValueTotal][IndexTotal]{};
+	float        actorValue[ActorValueTotal][IndexTotal]{};
+	std::string  className[ClassTotal][GenderTotal]{};
+	std::string  affinityName[AffinityTotal][GenderTotal]{};
+	std::int32_t bookCost[SkillTotal][LevelTotal]{};
 
 private:
 	std::string  playerName{};
@@ -888,9 +895,7 @@ private:
 	std::int32_t playerClassMinor{};
 
 private:
-	std::string  className[ClassTotal][GenderTotal]{};
-	std::string  affinName[AffinTotal][GenderTotal]{};
-	std::int32_t bookCost[SkillTotal][LevelTotal]{};
+	bool overrideMessage{ false };
 
 private:
 	RE::BGSKeyword*    NoTransformTown{ nullptr };
@@ -908,9 +913,6 @@ private:
 	RE::TESGlobal*     TalentPoints{ nullptr };
 	RE::TESObjectMISC* Gold001{ nullptr };
 	RE::TESQuest*      AffinityQuest{ nullptr };
-
-private:
-	bool overrideMessage{ false };
 
 private:
 	using FormID = std::pair<std::uint32_t, std::string_view>;
@@ -951,7 +953,7 @@ private:
 		std::array<FormID, GenderTotal>{ std::make_pair(0x02F188, "Enderal - Forgotten Stories.esm"sv), std::make_pair(0x02F189, "Enderal - Forgotten Stories.esm"sv) }, // kTheriantrophist
 	};
 
-	static constexpr std::array<std::array<FormID, GenderTotal>, AffinTotal> affinForms{
+	static constexpr std::array<std::array<FormID, GenderTotal>, AffinityTotal> affinityForms{
 		std::array<FormID, GenderTotal>{ std::make_pair(0x042A8C, "Skyrim.esm"sv),                      std::make_pair(0x042A99, "Skyrim.esm"sv)                      }, // kBattlemage
 		std::array<FormID, GenderTotal>{ std::make_pair(0x042A8D, "Skyrim.esm"sv),                      std::make_pair(0x042A9D, "Skyrim.esm"sv)                      }, // kCleric
 		std::array<FormID, GenderTotal>{ std::make_pair(0x042A8E, "Skyrim.esm"sv),                      std::make_pair(0x042A98, "Skyrim.esm"sv)                      }, // kAssassin
