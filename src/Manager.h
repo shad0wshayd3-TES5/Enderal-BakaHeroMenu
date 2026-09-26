@@ -109,52 +109,52 @@ private:
 	{
 		switch (a_av)
 		{
-			case kOneHanded:
-				return RE::ActorValue::kOneHanded;
-			case kTwoHanded:
-				return RE::ActorValue::kTwoHanded;
-			case kMarksman:
-				return RE::ActorValue::kArchery;
-			case kBlock:
-				return RE::ActorValue::kBlock;
-			case kHandicraft:
-				return RE::ActorValue::kSmithing;
-			case kHeavyArmor:
-				return RE::ActorValue::kHeavyArmor;
-			case kLightArmor:
-				return RE::ActorValue::kLightArmor;
-			case kSlightOfHand:
-				return RE::ActorValue::kPickpocket;
-			case kLockpicking:
-				return RE::ActorValue::kLockpicking;
-			case kSneak:
-				return RE::ActorValue::kSneak;
-			case kAlchemy:
-				return RE::ActorValue::kAlchemy;
-			case kRhetoric:
-				return RE::ActorValue::kSpeech;
-			case kMentalism:
-				return RE::ActorValue::kAlteration;
-			case kEntropy:
-				return RE::ActorValue::kConjuration;
-			case kElementalism:
-				return RE::ActorValue::kDestruction;
-			case kPsionics:
-				return RE::ActorValue::kIllusion;
-			case kLightMagic:
-				return RE::ActorValue::kRestoration;
-			case kEnchanting:
-				return RE::ActorValue::kEnchanting;
-			case kHealth:
-				return RE::ActorValue::kHealth;
-			case kMana:
-				return RE::ActorValue::kMagicka;
-			case kStamina:
-				return RE::ActorValue::kStamina;
-			case kArcaneFever:
-				return RE::ActorValue::kLastFlattered;
-			default:
-				return RE::ActorValue::kNone;
+		case kOneHanded:
+			return RE::ActorValue::kOneHanded;
+		case kTwoHanded:
+			return RE::ActorValue::kTwoHanded;
+		case kMarksman:
+			return RE::ActorValue::kArchery;
+		case kBlock:
+			return RE::ActorValue::kBlock;
+		case kHandicraft:
+			return RE::ActorValue::kSmithing;
+		case kHeavyArmor:
+			return RE::ActorValue::kHeavyArmor;
+		case kLightArmor:
+			return RE::ActorValue::kLightArmor;
+		case kSlightOfHand:
+			return RE::ActorValue::kPickpocket;
+		case kLockpicking:
+			return RE::ActorValue::kLockpicking;
+		case kSneak:
+			return RE::ActorValue::kSneak;
+		case kAlchemy:
+			return RE::ActorValue::kAlchemy;
+		case kRhetoric:
+			return RE::ActorValue::kSpeech;
+		case kMentalism:
+			return RE::ActorValue::kAlteration;
+		case kEntropy:
+			return RE::ActorValue::kConjuration;
+		case kElementalism:
+			return RE::ActorValue::kDestruction;
+		case kPsionics:
+			return RE::ActorValue::kIllusion;
+		case kLightMagic:
+			return RE::ActorValue::kRestoration;
+		case kEnchanting:
+			return RE::ActorValue::kEnchanting;
+		case kHealth:
+			return RE::ActorValue::kHealth;
+		case kMana:
+			return RE::ActorValue::kMagicka;
+		case kStamina:
+			return RE::ActorValue::kStamina;
+		case kArcaneFever:
+			return RE::ActorValue::kLastFlattered;
+		default:
+			return RE::ActorValue::kNone;
 		}
 	}
 
@@ -500,7 +500,7 @@ private:
 			!GetGlobalValue(kLearningPoints))
 		{
 			auto message = std::format(
-				"You do not have enough {0} to increase {1}!"sv, 
+				"You do not have enough {0} to increase {1}!"sv,
 				GetPointName(false),
 				GetActorValueName(a_av));
 			return RE::DebugMessageBox(message.c_str());
