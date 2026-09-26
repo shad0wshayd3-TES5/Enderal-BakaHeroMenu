@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Manager.h"
+#include "MCM.h"
 
 namespace Events
 {
@@ -9,7 +10,7 @@ namespace Events
 		public RE::BSTEventSink<RE::MenuOpenCloseEvent>
 	{
 	public:
-		RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override
+		virtual RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override
 		{
 			if (a_event && a_event->opening && a_event->menuName == "CustomMenu"sv)
 			{
@@ -22,6 +23,11 @@ namespace Events
 						Manager::GetSingleton()->UpdateCache();
 						Manager::GetSingleton()->UpdateMenuName(view);
 					}
+			}
+
+			if (a_event && !a_event->opening && a_event->menuName == "Journal Menu"sv)
+			{
+				MCM::GetSingleton()->LoadSettings();
 			}
 
 			return RE::BSEventNotifyControl::kContinue;

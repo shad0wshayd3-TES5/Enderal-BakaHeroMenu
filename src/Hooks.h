@@ -29,7 +29,8 @@ namespace Hooks
 		};
 
 	private:
-		static std::optional<std::int32_t> GetSelectedSkill(RE::GFxValue& a_mc)
+		static auto GetSelectedSkill(RE::GFxValue& a_mc)
+			-> std::optional<std::int32_t>
 		{
 			for (std::int32_t i = 0; i < 18; i++)
 			{
@@ -48,7 +49,9 @@ namespace Hooks
 			return std::nullopt;
 		};
 
-		static RE::BSEventNotifyControl ProcessEvent(RE::MenuControls* a_this, RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>* a_source)
+	private:
+		static auto ProcessEvent(RE::MenuControls* a_this, RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>* a_source)
+			-> RE::BSEventNotifyControl
 		{
 			if (a_event && *a_event)
 			{

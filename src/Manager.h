@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Settings.h"
+#include "MCM.h"
 #include "Translator.h"
 
 class Manager :
@@ -352,13 +352,13 @@ private:
 				nullptr,
 				&mod);
 
-			if (Settings::GetSingleton()->ApplySeducerBonus)
+			if (MCM::GetSingleton()->QApplySeducerBonus())
 			{
 				if (Seducer && player->HasPerk(Seducer))
 					mod *= 0.90f;
 			}
 
-			if (Settings::GetSingleton()->ApplyMesmerizeBonus)
+			if (MCM::GetSingleton()->QApplyMesmerizeBonus())
 			{
 				if (Mesmerize03 && player->HasSpell(Mesmerize03))
 					mod *= 1.0f + ((GetActorValue(kPsionics) / 6.0f) + 14.0f) / 100.0f;
@@ -419,9 +419,9 @@ private:
 private:
 	void IncreaseLearningSkill(ActorValue a_av, std::int32_t a_cost)
 	{
-		if (!Settings::GetSingleton()->IgnoreLearningGold)
+		if (!MCM::GetSingleton()->QIgnoreLearningGold())
 			ModGold(a_cost);
-		if (!Settings::GetSingleton()->IgnoreLearningPoints)
+		if (!MCM::GetSingleton()->QIgnoreLearningPoints())
 			ModGlobal(LearningPoints, 1.0f);
 		ModValue(a_av, 1.0f);
 		UpdateMenu();
@@ -429,9 +429,9 @@ private:
 
 	void IncreaseCraftingSkill(ActorValue a_av, std::int32_t a_cost)
 	{
-		if (!Settings::GetSingleton()->IgnoreCraftingGold)
+		if (!MCM::GetSingleton()->QIgnoreCraftingGold())
 			ModGold(a_cost);
-		if (!Settings::GetSingleton()->IgnoreCraftingPoints)
+		if (!MCM::GetSingleton()->QIgnoreCraftingPoints())
 			ModGlobal(CraftingPoints, 1.0f);
 		ModValue(a_av, 1.0f);
 		UpdateMenu();
@@ -487,7 +487,7 @@ private:
 	void TryIncreaseLearningSkill(ActorValue a_av)
 	{
 		auto cost = GetGoldCost(a_av);
-		if (!Settings::GetSingleton()->IgnoreLearningGold &&
+		if (!MCM::GetSingleton()->QIgnoreLearningGold() &&
 			cost > playerGold)
 		{
 			auto message = std::format(
@@ -498,7 +498,7 @@ private:
 			return;
 		}
 
-		if (!Settings::GetSingleton()->IgnoreLearningPoints &&
+		if (!MCM::GetSingleton()->QIgnoreLearningPoints() &&
 			!GetGlobalValue(kLearningPoints))
 		{
 			auto message = std::format(
@@ -509,7 +509,7 @@ private:
 			return;
 		}
 
-		if (!Settings::GetSingleton()->SkipCallback)
+		if (!MCM::GetSingleton()->QSkipCallback())
 			RequestCallback(a_av, cost, false);
 		else
 			IncreaseLearningSkill(a_av, cost);
@@ -518,7 +518,7 @@ private:
 	void TryIncreaseCraftingSkill(ActorValue a_av)
 	{
 		auto cost = GetGoldCost(a_av);
-		if (!Settings::GetSingleton()->IgnoreCraftingGold &&
+		if (!MCM::GetSingleton()->QIgnoreCraftingGold() &&
 			cost > playerGold)
 		{
 			auto message = std::format(
@@ -529,7 +529,7 @@ private:
 			return;
 		}
 
-		if (!Settings::GetSingleton()->IgnoreCraftingPoints &&
+		if (!MCM::GetSingleton()->QIgnoreCraftingPoints() &&
 			!GetGlobalValue(kCraftingPoints))
 		{
 			auto message = std::format(
@@ -540,7 +540,7 @@ private:
 			return;
 		}
 
-		if (!Settings::GetSingleton()->SkipCallback)
+		if (!MCM::GetSingleton()->QSkipCallback())
 			RequestCallback(a_av, cost, true);
 		else
 			IncreaseCraftingSkill(a_av, cost);
@@ -549,7 +549,7 @@ private:
 public:
 	void TryIncreaseSkill(ActorValue a_av)
 	{
-		if (Settings::GetSingleton()->DisableOutsideCities)
+		if (MCM::GetSingleton()->QDisableOutsideCities())
 		{
 			if (auto player = RE::PlayerCharacter::GetSingleton())
 			{

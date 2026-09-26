@@ -1,6 +1,8 @@
 #include "Events.h"
 #include "Hooks.h"
 #include "Manager.h"
+#include "MCM.h"
+#include "Translator.h"
 
 namespace
 {
@@ -13,10 +15,12 @@ namespace
 			break;
 		case SKSE::MessagingInterface::kPostLoadGame:
 			Manager::GetSingleton()->LoadSave();
+			MCM::GetSingleton()->LoadSettings();
 			break;
 		case SKSE::MessagingInterface::kDataLoaded:
 			Events::Install();
 			Manager::GetSingleton()->LoadForms();
+			MCM::GetSingleton()->LoadForm();
 			break;
 		default:
 			break;
