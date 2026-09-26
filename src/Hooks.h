@@ -68,19 +68,15 @@ namespace Hooks
 							if (Manager::GetSingleton()->QOverrideMessage())
 								return _ProcessEvent(a_this, a_event, a_source);
 
-							switch (buttonEvent->GetIDCode())
+							if (buttonEvent->QUserEvent() == "Accept"sv || buttonEvent->QUserEvent() == "Click"sv)
 							{
-							case 0:  // Click
 								if (auto idx = GetSelectedSkill(movieclip))
 									Manager::GetSingleton()->TryIncreaseSkill(*idx);
-								break;
-							case 15:  // Cancel
-							case 35:  // Quick Stats
+							}
+							else if (buttonEvent->QUserEvent() == "Cancel"sv || (buttonEvent->QUserEvent() == "Quick Stats"sv))
+							{
 								if (auto queue = RE::UIMessageQueue::GetSingleton())
 									queue->AddMessage("CustomMenu", RE::UI_MESSAGE_TYPE::kHide, nullptr);
-								break;
-							default:
-								break;
 							}
 						}
 					}
