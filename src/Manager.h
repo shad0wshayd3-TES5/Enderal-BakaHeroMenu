@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Settings.h"
+#include "Translator.h"
 
 class Manager :
 	public REX::TSingleton<Manager>
@@ -72,6 +73,7 @@ private:
 public:
 	void LoadForms()
 	{
+		Translator::GetSingleton()->Load();
 		UpdateForms();
 		UpdateBookValues();
 	}
@@ -234,6 +236,22 @@ private:
 				actorValue[i][kMax] = player->GetActorValueMax(av);
 			}
 		}
+	}
+
+private:
+	std::string_view GetActorValueName(ActorValue a_av) const
+	{
+		return Translator::GetSingleton()->GetActorValueName(a_av);
+	}
+
+	std::string_view GetGoldName() const
+	{
+		return Translator::GetSingleton()->GetGoldName();
+	}
+
+	std::string_view GetPointName(bool a_craft) const
+	{
+		return Translator::GetSingleton()->GetPointName(a_craft);
 	}
 
 private:
@@ -448,17 +466,16 @@ private:
 		std::int32_t m_cost{};
 	};
 
-	void RequestCallback(ActorValue a_av, std::int32_t a_cost, bool a_learning)
+	void RequestCallback(ActorValue a_av, std::int32_t a_cost, bool a_crafting)
 	{
 		// clang-format off
 		auto text = std::format(
-			"Do you want to increase {}?\n\nPrice: {}p, 1 {} Point\n\nCurrent Pennies: {}\n Current {} Points: {}"sv,
-			a_av,
+			"Do you want to increase {0}?\n\nPrice: {1}p, 1 {2}\n\nCurrent Pennies: {3}\n Current {2}: {4}"sv,
+			GetActorValueName(a_av),
 			a_cost,
-			(a_learning ? "Learning"sv : "Crafting"sv),
+			GetPointName(a_crafting),
 			playerGold,
-			(a_learning ? "Learning"sv : "Crafting"sv),
-			(a_learning ? GetGlobalValue(kLearningPoints) : GetGlobalValue(kCraftingPoints)));
+			(a_crafting ? GetGlobalValue(kCraftingPoints) : GetGlobalValue(kLearningPoints)));
 
 		RE::BSString message{ text };
 		RE::BSTSmartPointer<RE::IMessageBoxCallback> call{ new HeroMessageBoxCallback(a_av, a_cost) };
@@ -473,8 +490,9 @@ private:
 			cost > playerGold)
 		{
 			auto message = std::format(
-				"You do not have enough pennies to increase {}!\nPrice: {}p"sv,
-				a_av, cost);
+				"You do not have enough pennies to increase {0}!\nPrice: {1}p"sv,
+				GetActorValueName(a_av),
+				cost);
 			return RE::DebugMessageBox(message.c_str());
 		}
 
@@ -482,13 +500,14 @@ private:
 			!GetGlobalValue(kLearningPoints))
 		{
 			auto message = std::format(
-				"You do not have enough Learning Points to increase {}!"sv,
-				a_av);
+				"You do not have enough {0} to increase {1}!"sv, 
+				GetPointName(false),
+				GetActorValueName(a_av));
 			return RE::DebugMessageBox(message.c_str());
 		}
 
 		if (!Settings::GetSingleton()->SkipCallback)
-			RequestCallback(a_av, cost, true);
+			RequestCallback(a_av, cost, false);
 		else
 			IncreaseLearningSkill(a_av, cost);
 	}
@@ -500,8 +519,9 @@ private:
 			cost > playerGold)
 		{
 			auto message = std::format(
-				"You do not have enough pennies to increase {}!\nPrice: {}p"sv,
-				a_av, cost);
+				"You do not have enough pennies to increase {0}!\nPrice: {1}p"sv,
+				GetActorValueName(a_av),
+				cost);
 			return RE::DebugMessageBox(message.c_str());
 		}
 
@@ -509,13 +529,14 @@ private:
 			!GetGlobalValue(kCraftingPoints))
 		{
 			auto message = std::format(
-				"You do not have enough Crafting Points to increase {}!"sv,
-				a_av);
+				"You do not have enough {0} to increase {1}!"sv,
+				GetPointName(true),
+				GetActorValueName(a_av));
 			return RE::DebugMessageBox(message.c_str());
 		}
 
 		if (!Settings::GetSingleton()->SkipCallback)
-			RequestCallback(a_av, cost, false);
+			RequestCallback(a_av, cost, true);
 		else
 			IncreaseCraftingSkill(a_av, cost);
 	}
@@ -525,7 +546,9 @@ public:
 	{
 		if (GetBaseActorValue(a_av) >= 100.0f)
 		{
-			auto message = std::format("You cannot increase {} further.", a_av);
+			auto message = std::format(
+				"You cannot increase {0} further.",
+				GetActorValueName(a_av));
 			return RE::DebugMessageBox(message.c_str());
 		}
 
@@ -596,7 +619,7 @@ private:
 private:
 	void UpdateMenuName()
 	{
-		playerNameGold = std::format("{} / Pennies: {}", playerName, playerGold);
+		playerNameGold = std::format("{0} / {1}: {2}", playerName, GetGoldName(), playerGold);
 	}
 
 public:
