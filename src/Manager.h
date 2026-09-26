@@ -70,6 +70,48 @@ private:
 		GlobalTotal,
 	};
 
+private:
+	class HeroMessageBoxCallback :
+		public RE::IMessageBoxCallback
+	{
+	public:
+		inline static RE::BSTArray<RE::BSString> Buttons{ "$Yes", "$Cancel" };
+
+	public:
+		HeroMessageBoxCallback() = delete;
+		HeroMessageBoxCallback(ActorValue a_av, std::int32_t a_cost) :
+			m_actorValue(a_av),
+			m_cost(a_cost)
+		{
+			Manager::GetSingleton()->SetOverrideMessage(true);
+		}
+
+		virtual void Run(std::uint8_t a_button) override
+		{
+			if (a_button == 0)
+				Manager::GetSingleton()->IncreaseSkill(m_actorValue, m_cost);
+			Manager::GetSingleton()->SetOverrideMessage(false);
+		}
+
+	private:
+		ActorValue   m_actorValue{};
+		std::int32_t m_cost{};
+	};
+
+	class UpdateClassNameCallback :
+		public RE::BSScript::IStackCallbackFunctor
+	{
+	public:
+		virtual void operator()(RE::BSScript::Variable a_result) override
+		{
+			if (a_result.IsString())
+				Manager::GetSingleton()->SetClassName(a_result.GetString());
+		}
+
+		virtual bool CanSave() const override { return false; }
+		virtual void SetObject(const RE::BSTSmartPointer<RE::BSScript::Object>&) override { return; }
+	};
+
 public:
 	void LoadForms()
 	{
@@ -277,20 +319,6 @@ private:
 	}
 
 private:
-	class UpdateClassNameCallback :
-		public RE::BSScript::IStackCallbackFunctor
-	{
-	public:
-		virtual void operator()(RE::BSScript::Variable a_result) override
-		{
-			if (a_result.IsString())
-				Manager::GetSingleton()->SetClassName(a_result.GetString());
-		}
-
-		virtual bool CanSave() const override { return false; }
-		virtual void SetObject(const RE::BSTSmartPointer<RE::BSScript::Object>&) override { return; }
-	};
-
 	void UpdateClassName()
 	{
 		RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> callback{ new UpdateClassNameCallback };
@@ -439,33 +467,6 @@ private:
 	}
 
 private:
-	class HeroMessageBoxCallback :
-		public RE::IMessageBoxCallback
-	{
-	public:
-		inline static RE::BSTArray<RE::BSString> Buttons{ "$Yes", "$Cancel" };
-
-	public:
-		HeroMessageBoxCallback() = delete;
-		HeroMessageBoxCallback(ActorValue a_av, std::int32_t a_cost) :
-			m_actorValue(a_av),
-			m_cost(a_cost)
-		{
-			Manager::GetSingleton()->SetOverrideMessage(true);
-		}
-
-		virtual void Run(std::uint8_t a_button) override
-		{
-			if (a_button == 0)
-				Manager::GetSingleton()->IncreaseSkill(m_actorValue, m_cost);
-			Manager::GetSingleton()->SetOverrideMessage(false);
-		}
-
-	private:
-		ActorValue   m_actorValue{};
-		std::int32_t m_cost{};
-	};
-
 	void RequestCallback(ActorValue a_av, std::int32_t a_cost, bool a_crafting)
 	{
 		// clang-format off
