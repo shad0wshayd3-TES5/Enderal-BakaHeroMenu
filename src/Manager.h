@@ -467,9 +467,9 @@ private:
 	}
 
 private:
+	// clang-format off
 	void RequestCallback(ActorValue a_av, std::int32_t a_cost, bool a_crafting)
 	{
-		// clang-format off
 		auto text = std::format(
 			"Do you want to increase {0}?\n\nPrice: {1}p, 1 {2}\n\nCurrent Pennies: {3}\n Current {2}: {4}"sv,
 			GetActorValueName(a_av),
@@ -481,8 +481,8 @@ private:
 		RE::BSString message{ text };
 		RE::BSTSmartPointer<RE::IMessageBoxCallback> call{ new HeroMessageBoxCallback(a_av, a_cost) };
 		RE::MessageBoxMenu::Create(message, call, 0, 25, 10, HeroMessageBoxCallback::Buttons);
-		// clang-format on
 	}
+	// clang-format on
 
 	void TryIncreaseLearningSkill(ActorValue a_av)
 	{
@@ -491,10 +491,11 @@ private:
 			cost > playerGold)
 		{
 			auto message = std::format(
-				"You do not have enough pennies to increase {0}!\nPrice: {1}p"sv,
+				"You do not have enough pennies to increase {0}! (Price: {1}p)"sv,
 				GetActorValueName(a_av),
 				cost);
-			return RE::DebugMessageBox(message.c_str());
+			RE::SendHUDMessage::ShowHUDMessage(message.c_str());
+			return;
 		}
 
 		if (!Settings::GetSingleton()->IgnoreLearningPoints &&
@@ -504,7 +505,8 @@ private:
 				"You do not have enough {0} to increase {1}!"sv,
 				GetPointName(false),
 				GetActorValueName(a_av));
-			return RE::DebugMessageBox(message.c_str());
+			RE::SendHUDMessage::ShowHUDMessage(message.c_str());
+			return;
 		}
 
 		if (!Settings::GetSingleton()->SkipCallback)
@@ -520,10 +522,11 @@ private:
 			cost > playerGold)
 		{
 			auto message = std::format(
-				"You do not have enough pennies to increase {0}!\nPrice: {1}p"sv,
+				"You do not have enough pennies to increase {0}! (Price: {1}p)"sv,
 				GetActorValueName(a_av),
 				cost);
-			return RE::DebugMessageBox(message.c_str());
+			RE::SendHUDMessage::ShowHUDMessage(message.c_str());
+			return;
 		}
 
 		if (!Settings::GetSingleton()->IgnoreCraftingPoints &&
@@ -533,7 +536,8 @@ private:
 				"You do not have enough {0} to increase {1}!"sv,
 				GetPointName(true),
 				GetActorValueName(a_av));
-			return RE::DebugMessageBox(message.c_str());
+			RE::SendHUDMessage::ShowHUDMessage(message.c_str());
+			return;
 		}
 
 		if (!Settings::GetSingleton()->SkipCallback)
@@ -545,12 +549,27 @@ private:
 public:
 	void TryIncreaseSkill(ActorValue a_av)
 	{
+		if (Settings::GetSingleton()->DisableOutsideCities)
+		{
+			if (auto player = RE::PlayerCharacter::GetSingleton())
+			{
+				if (auto location = player->GetCurrentLocation();
+					location && !location->HasKeyword(NoTransformTown))
+				{
+					auto message = std::format("You cannot raise your skills in the wilderness."sv);
+					RE::SendHUDMessage::ShowHUDMessage(message.c_str());
+					return;
+				}
+			}
+		}
+
 		if (GetBaseActorValue(a_av) >= 100.0f)
 		{
 			auto message = std::format(
 				"You cannot increase {0} further.",
 				GetActorValueName(a_av));
-			return RE::DebugMessageBox(message.c_str());
+			RE::SendHUDMessage::ShowHUDMessage(message.c_str());
+			return;
 		}
 
 		switch (a_av)
@@ -590,7 +609,7 @@ private:
 	{
 		for (std::int32_t i = 0; i < LevelTotal; i++)
 		{
-			if (auto form = RE::TESForm::LookupByID(bookForm[a_av][i]))
+			if (auto form = RE::TESForm::LookupByID(bookForms[a_av][i]))
 				bookCost[a_av][i] = form->GetGoldValue();
 		}
 	}
@@ -756,27 +775,28 @@ private:
 	}
 
 private:
+	// clang-format off
 	void UpdateForms()
 	{
 		if (auto data = RE::TESDataHandler::GetSingleton())
 		{
-			// clang-format off
-			Seducer        = data->LookupForm<RE::BGSPerk>(0x069D3D, "Skyrim.esm"sv);
-			Mesmerize01    = data->LookupForm<RE::SpellItem>(0x01EFDA, "Enderal - Forgotten Stories.esm"sv);
-			Mesmerize02    = data->LookupForm<RE::SpellItem>(0x01EFDD, "Enderal - Forgotten Stories.esm"sv);
-			Mesmerize03    = data->LookupForm<RE::SpellItem>(0x01EFDE, "Enderal - Forgotten Stories.esm"sv);
-			EXPMult        = data->LookupForm<RE::TESGlobal>(0x008D2B, "Skyrim.esm"sv);
-			EXPMultSlope   = data->LookupForm<RE::TESGlobal>(0x0D0EDB, "Skyrim.esm"sv);
-			PlayerXP       = data->LookupForm<RE::TESGlobal>(0x012596, "Skyrim.esm"sv);
-			PlayerNeededXP = data->LookupForm<RE::TESGlobal>(0x027CD1, "Skyrim.esm"sv);
-			PlayerLevel    = data->LookupForm<RE::TESGlobal>(0x012595, "Skyrim.esm"sv);
-			CraftingPoints = data->LookupForm<RE::TESGlobal>(0x085A79, "Skyrim.esm"sv);
-			LearningPoints = data->LookupForm<RE::TESGlobal>(0x031ACB, "Skyrim.esm"sv);
-			TalentPoints   = data->LookupForm<RE::TESGlobal>(0x05BCFA, "Skyrim.esm"sv);
-			Gold001        = data->LookupForm<RE::TESObjectMISC>(0x00000F, "Skyrim.esm"sv);
-			// clang-format on
+			NoTransformTown = data->LookupForm<RE::BGSKeyword>(0x02EAA6, "Enderal - Forgotten Stories.esm"sv);
+			Seducer         = data->LookupForm<RE::BGSPerk>(0x069D3D, "Skyrim.esm"sv);
+			Mesmerize01     = data->LookupForm<RE::SpellItem>(0x01EFDA, "Enderal - Forgotten Stories.esm"sv);
+			Mesmerize02     = data->LookupForm<RE::SpellItem>(0x01EFDD, "Enderal - Forgotten Stories.esm"sv);
+			Mesmerize03     = data->LookupForm<RE::SpellItem>(0x01EFDE, "Enderal - Forgotten Stories.esm"sv);
+			EXPMult         = data->LookupForm<RE::TESGlobal>(0x008D2B, "Skyrim.esm"sv);
+			EXPMultSlope    = data->LookupForm<RE::TESGlobal>(0x0D0EDB, "Skyrim.esm"sv);
+			PlayerXP        = data->LookupForm<RE::TESGlobal>(0x012596, "Skyrim.esm"sv);
+			PlayerNeededXP  = data->LookupForm<RE::TESGlobal>(0x027CD1, "Skyrim.esm"sv);
+			PlayerLevel     = data->LookupForm<RE::TESGlobal>(0x012595, "Skyrim.esm"sv);
+			CraftingPoints  = data->LookupForm<RE::TESGlobal>(0x085A79, "Skyrim.esm"sv);
+			LearningPoints  = data->LookupForm<RE::TESGlobal>(0x031ACB, "Skyrim.esm"sv);
+			TalentPoints    = data->LookupForm<RE::TESGlobal>(0x05BCFA, "Skyrim.esm"sv);
+			Gold001         = data->LookupForm<RE::TESObjectMISC>(0x00000F, "Skyrim.esm"sv);
 		}
 	}
+	// clang-format on
 
 private:
 	float actorValue[ActorValueTotal][IndexTotal]{};
@@ -791,6 +811,7 @@ private:
 	std::int32_t bookCost[SkillTotal][LevelTotal]{};
 
 private:
+	RE::BGSKeyword*    NoTransformTown{ nullptr };
 	RE::BGSPerk*       Seducer{ nullptr };
 	RE::SpellItem*     Mesmerize01{ nullptr };
 	RE::SpellItem*     Mesmerize02{ nullptr };
@@ -809,24 +830,24 @@ private:
 	bool overrideMessage{ false };
 
 private:
-	static constexpr std::array<std::array<std::uint32_t, LevelTotal>, SkillTotal> bookForm{
-		std::array<std::uint32_t, 4>{ 0x031ACC, 0x031ACE, 0x033A5F, 0x039935 },
-		std::array<std::uint32_t, 4>{ 0x039936, 0x039937, 0x039938, 0x039939 },
-		std::array<std::uint32_t, 4>{ 0x085641, 0x085643, 0x085644, 0x085642 },
-		std::array<std::uint32_t, 4>{ 0x039941, 0x039942, 0x039943, 0x039944 },
-		std::array<std::uint32_t, 4>{ 0x0E7632, 0x0E7633, 0x0E7634, 0x0E7635 },
-		std::array<std::uint32_t, 4>{ 0x03F86A, 0x03F86B, 0x03F86C, 0x03F86D },
-		std::array<std::uint32_t, 4>{ 0x0E75F3, 0x0E75F4, 0x0E75F0, 0x0E75F2 },
-		std::array<std::uint32_t, 4>{ 0x0E762E, 0x0E762F, 0x0E7630, 0x0E7631 },
-		std::array<std::uint32_t, 4>{ 0x0E762A, 0x0E762B, 0x0E762C, 0x0E762D },
-		std::array<std::uint32_t, 4>{ 0x0E7636, 0x0E7637, 0x0E7638, 0x0E7639 },
-		std::array<std::uint32_t, 4>{ 0x0E7622, 0x0E7623, 0x0E7624, 0x0E7625 },
-		std::array<std::uint32_t, 4>{ 0x08591F, 0x08591E, 0x08591D, 0x08591B },
-		std::array<std::uint32_t, 4>{ 0x085618, 0x085619, 0x08561A, 0x08561B },
-		std::array<std::uint32_t, 4>{ 0x085621, 0x085622, 0x085620, 0x085623 },
-		std::array<std::uint32_t, 4>{ 0x085614, 0x085615, 0x085616, 0x085617 },
-		std::array<std::uint32_t, 4>{ 0x08561C, 0x08561D, 0x08561E, 0x08561F },
-		std::array<std::uint32_t, 4>{ 0x085624, 0x085625, 0x085626, 0x085627 },
-		std::array<std::uint32_t, 4>{ 0x0E7626, 0x0E7627, 0x0E7628, 0x0E7629 },
+	static constexpr std::array<std::array<std::uint32_t, LevelTotal>, SkillTotal> bookForms {
+		std::array<std::uint32_t, 4>{ 0x031ACC, 0x031ACE, 0x033A5F, 0x039935 },	// kOneHanded
+		std::array<std::uint32_t, 4>{ 0x039936, 0x039937, 0x039938, 0x039939 },	// kTwoHanded
+		std::array<std::uint32_t, 4>{ 0x085641, 0x085643, 0x085644, 0x085642 },	// kMarksman
+		std::array<std::uint32_t, 4>{ 0x039941, 0x039942, 0x039943, 0x039944 },	// kBlock
+		std::array<std::uint32_t, 4>{ 0x0E7632, 0x0E7633, 0x0E7634, 0x0E7635 },	// kHandicraft
+		std::array<std::uint32_t, 4>{ 0x03F86A, 0x03F86B, 0x03F86C, 0x03F86D },	// kHeavyArmor
+		std::array<std::uint32_t, 4>{ 0x0E75F3, 0x0E75F4, 0x0E75F0, 0x0E75F2 },	// kLightArmor
+		std::array<std::uint32_t, 4>{ 0x0E762E, 0x0E762F, 0x0E7630, 0x0E7631 },	// kSlightOfHand
+		std::array<std::uint32_t, 4>{ 0x0E762A, 0x0E762B, 0x0E762C, 0x0E762D },	// kLockpicking
+		std::array<std::uint32_t, 4>{ 0x0E7636, 0x0E7637, 0x0E7638, 0x0E7639 },	// kSneak
+		std::array<std::uint32_t, 4>{ 0x0E7622, 0x0E7623, 0x0E7624, 0x0E7625 },	// kAlchemy
+		std::array<std::uint32_t, 4>{ 0x08591F, 0x08591E, 0x08591D, 0x08591B },	// kRhetoric
+		std::array<std::uint32_t, 4>{ 0x085618, 0x085619, 0x08561A, 0x08561B },	// kMentalism
+		std::array<std::uint32_t, 4>{ 0x085621, 0x085622, 0x085620, 0x085623 },	// kEntropy
+		std::array<std::uint32_t, 4>{ 0x085614, 0x085615, 0x085616, 0x085617 },	// kElementalism
+		std::array<std::uint32_t, 4>{ 0x08561C, 0x08561D, 0x08561E, 0x08561F },	// kPsionics
+		std::array<std::uint32_t, 4>{ 0x085624, 0x085625, 0x085626, 0x085627 },	// kLightMagic
+		std::array<std::uint32_t, 4>{ 0x0E7626, 0x0E7627, 0x0E7628, 0x0E7629 }, // kEnchanting
 	};
 };

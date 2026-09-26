@@ -6,6 +6,7 @@ namespace Settings
 	{
 		bool ApplySeducerBonus{ false };
 		bool ApplyMesmerizeBonus{ false };
+		bool DisableOutsideCities{ false };
 		bool IgnoreLearningGold{ false };
 		bool IgnoreLearningPoints{ false };
 		bool IgnoreCraftingGold{ false };
