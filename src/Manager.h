@@ -41,8 +41,9 @@ private:
 
 	enum Index : std::int32_t
 	{
-		kStat,
-		kBase,
+		kVal,
+		kMin,
+		kMax,
 		IndexTotal,
 	};
 
@@ -189,17 +190,25 @@ private:
 private:
 	auto GetActorValue(ActorValue a_av) const
 	{
-		return actorValue[a_av][kStat];
+		return actorValue[a_av][kVal];
 	}
 
 	auto GetBaseActorValue(ActorValue a_av) const
 	{
-		return actorValue[a_av][kBase];
+		return actorValue[a_av][kMin];
 	}
 
 	auto GetActorValueMod(ActorValue a_av) const
 	{
-		return actorValue[a_av][kStat] - actorValue[a_av][kBase];
+		switch (a_av)
+		{
+		case kHealth:
+		case kMana:
+		case kStamina:
+			return actorValue[a_av][kMax] - actorValue[a_av][kMin];
+		default:
+			return actorValue[a_av][kVal] - actorValue[a_av][kMin];
+		}
 	}
 
 	void UpdateActorValue(ActorValue a_av)
@@ -207,8 +216,9 @@ private:
 		if (auto player = RE::PlayerCharacter::GetSingleton())
 		{
 			auto av = ConvertActorValue(a_av);
-			actorValue[a_av][kStat] = player->GetActorValue(av);
-			actorValue[a_av][kBase] = player->GetBaseActorValue(av);
+			actorValue[a_av][kVal] = player->GetActorValue(av);
+			actorValue[a_av][kMin] = player->GetBaseActorValue(av);
+			actorValue[a_av][kMax] = player->GetActorValueMax(av);
 		}
 	}
 
@@ -219,8 +229,9 @@ private:
 			for (auto i = 0; i < ActorValueTotal; i++)
 			{
 				auto av = ConvertActorValue(i);
-				actorValue[i][kStat] = player->GetActorValue(av);
-				actorValue[i][kBase] = player->GetBaseActorValue(av);
+				actorValue[i][kVal] = player->GetActorValue(av);
+				actorValue[i][kMin] = player->GetBaseActorValue(av);
+				actorValue[i][kMax] = player->GetActorValueMax(av);
 			}
 		}
 	}
@@ -636,6 +647,10 @@ private:
 		// SetIntValues
 		{
 			RE::GFxValue args[33];
+
+			auto expNeededForNextLevel = CalculateNeededExpPoints(GetGlobalValue(Global::kPlayerLevel), GetGlobalValue(Global::kExpMultSlope), GetGlobalValue(Global::kExpMult));
+			auto expNeededForThisLevel = CalculateNeededExpPoints(GetGlobalValue(Global::kPlayerLevel) - 1, GetGlobalValue(Global::kExpMultSlope), GetGlobalValue(Global::kExpMult));
+
 			// Health
 			args[0] = GetBaseActorValue(kHealth);
 			args[1] = GetActorValue(kHealth);
@@ -652,7 +667,7 @@ private:
 			args[6] = -GetActorValue(kArcaneFever);
 
 			// Globals
-			args[7] = GetGlobalValue(kPlayerNeededXP);
+			args[7] = expNeededForNextLevel;
 			args[8] = GetGlobalValue(kPlayerXP);
 			args[9] = GetGlobalValue(kPlayerLevel);
 			args[10] = GetGlobalValue(kLearningPoints);
@@ -679,15 +694,9 @@ private:
 			args[29] = GetBaseActorValue(kHandicraft);
 			args[30] = GetBaseActorValue(kRhetoric);
 
-			auto level = GetGlobalValue(Global::kPlayerLevel);
-			auto expMultSlope = GetGlobalValue(Global::kExpMultSlope);
-			auto expMult = GetGlobalValue(Global::kExpMult);
-			auto expNeededForCurrentLevel = CalculateNeededExpPoints(level - 1, expMultSlope, expMult);
-			auto expNeededForNextLevel = CalculateNeededExpPoints(level, expMultSlope, expMult);
-
 			// XP
-			args[31] = GetGlobalValue(kPlayerXP) - expNeededForCurrentLevel;
-			args[32] = expNeededForNextLevel - expNeededForCurrentLevel;
+			args[31] = GetGlobalValue(kPlayerXP) - expNeededForThisLevel;
+			args[32] = expNeededForNextLevel - expNeededForThisLevel;
 			view->Invoke("heromenu_mc.SetIntValues", nullptr, args, 33);
 		}
 
