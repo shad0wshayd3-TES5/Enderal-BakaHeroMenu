@@ -672,7 +672,10 @@ public:
 private:
 	void UpdateMenuName()
 	{
-		playerNameGold = std::format("{0} / {1}: {2}", playerName, GetGoldName(), playerGold);
+		if (!MCM::GetSingleton()->QShowPenniesInMenu())
+			playerMenu = playerName;
+		else
+			playerMenu = std::format("{0} / {1}: {2}", playerName, GetGoldName(), playerGold);
 	}
 
 public:
@@ -681,7 +684,7 @@ public:
 		UpdateMenuName();
 		{
 			RE::GFxValue args[2];
-			args[0] = playerNameGold;
+			args[0] = playerMenu;
 			args[1] = playerClass;
 			a_view->Invoke("heromenu_mc.SetStringValues", nullptr, args, 2);
 		}
@@ -932,7 +935,7 @@ private:
 	std::string  playerName{};
 	std::int32_t playerGender{};
 	std::int32_t playerGold{};
-	std::string  playerNameGold{};
+	std::string  playerMenu{};
 	std::string  playerClass{};
 	std::int32_t playerClassIndex{ -1 };
 	std::int32_t playerClassMajor{};

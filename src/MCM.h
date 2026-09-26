@@ -24,6 +24,7 @@ public:
 			IgnoreLearningPoints = ScriptObject::GetBool(*mcm, "bIgnoreLearningPoints"sv).value_or(IgnoreLearningPoints);
 			IgnoreCraftingGold   = ScriptObject::GetBool(*mcm, "bIgnoreCraftingGold"sv).value_or(IgnoreCraftingGold);
 			IgnoreCraftingPoints = ScriptObject::GetBool(*mcm, "bIgnoreCraftingPoints"sv).value_or(IgnoreCraftingPoints);
+			ShowPenniesInMenu    = ScriptObject::GetBool(*mcm, "bShowPenniesInMenu"sv).value_or(ShowPenniesInMenu);
 			SkipCallback         = ScriptObject::GetBool(*mcm, "bSkipCallback"sv).value_or(SkipCallback);
 		}
 	}
@@ -37,6 +38,7 @@ public:
 	bool QIgnoreLearningPoints() const { return IgnoreLearningPoints; }
 	bool QIgnoreCraftingGold() const { return IgnoreCraftingGold; }
 	bool QIgnoreCraftingPoints() const { return IgnoreCraftingPoints; }
+	bool QShowPenniesInMenu() const { return ShowPenniesInMenu; }
 	bool QSkipCallback() const { return SkipCallback; }
 
 private:
@@ -50,5 +52,6 @@ private:
 	bool IgnoreLearningPoints{ false };
 	bool IgnoreCraftingGold{ false };
 	bool IgnoreCraftingPoints{ false };
+	bool ShowPenniesInMenu{ true };
 	bool SkipCallback{ false };
 };
