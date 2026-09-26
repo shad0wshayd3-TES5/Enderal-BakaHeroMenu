@@ -19,7 +19,7 @@ namespace
 			break;
 		case SKSE::MessagingInterface::kDataLoaded:
 			Events::Install();
-			Manager::GetSingleton()->LoadForms();
+			Manager::GetSingleton()->LoadForm();
 			MCM::GetSingleton()->LoadForm();
 			break;
 		default:

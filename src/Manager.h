@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MCM.h"
+#include "ScriptObject.h"
 #include "Translator.h"
 
 class Manager :
@@ -40,6 +41,49 @@ private:
 		SkillTotal = 18,
 	};
 
+	enum Affinity
+	{
+		kBattlemage,
+		kCleric,
+		kAssassin,
+		kWayfarer,
+		kBlackMage,
+		kDarkKeeper,
+		kFencer,
+		kBladebreaker,
+		kShadowdancer,
+		kArcaneArcher,
+		kWanderingMage,
+		kSpectralist,
+		kGhostBlade,
+		kSpectralWarrior,
+		kBrute,
+		kDrifter,
+		kDruid,
+		kNightwolf,
+		kRavager,
+		kScourgeOfTheWilds,
+		kSoulcaller,
+		AffinTotal,
+	};
+
+	enum Class
+	{
+		kNone,
+		kBastion,
+		kDerwish,
+		kElementalist,
+		kEspionage,
+		kLifeAndDeath,
+		kManipulation,
+		kRage,
+		kTrickery,
+		kVagabond,
+		kPhasmalist,
+		kTheriantrophist,
+		ClassTotal,
+	};
+
 	enum Index : std::int32_t
 	{
 		kVal,
@@ -55,6 +99,13 @@ private:
 		kExpert,
 		kMaster,
 		LevelTotal,
+	};
+
+	enum Gender
+	{
+		kMale,
+		kFemale,
+		GenderTotal,
 	};
 
 	enum Global : std::int32_t
@@ -98,40 +149,29 @@ private:
 		std::int32_t m_cost{};
 	};
 
-	class UpdateClassNameCallback :
-		public RE::BSScript::IStackCallbackFunctor
-	{
-	public:
-		virtual void operator()(RE::BSScript::Variable a_result) override
-		{
-			if (a_result.IsString())
-				Manager::GetSingleton()->SetClassName(a_result.GetString());
-		}
-
-		virtual bool CanSave() const override { return false; }
-		virtual void SetObject(const RE::BSTSmartPointer<RE::BSScript::Object>&) override { return; }
-	};
-
 public:
-	void LoadForms()
+	void LoadForm()
 	{
 		Translator::GetSingleton()->Load();
-		UpdateForms();
-		UpdateBookValues();
+		if (auto data = RE::TESDataHandler::GetSingleton())
+		{
+			LoadBookValues(data);
+			LoadClassNames(data);
+			LoadAffinityNames(data);
+			LoadForms(data);
+		}
 	}
 
 	void LoadSave()
 	{
-		UpdateClassName();
-		// UpdatePlayerName();
+		UpdatePlayerInfo();
 	}
 
 	void UpdateCache()
 	{
-		UpdateClassName();
-		UpdateActorValues();
-		UpdatePlayerName();
+		UpdatePlayerInfo();
 		UpdatePlayerGold();
+		UpdateActorValues();
 	}
 
 public:
@@ -306,24 +346,49 @@ private:
 		}
 	}
 
-	void UpdatePlayerName()
+	void UpdatePlayerInfo()
 	{
 		if (auto player = RE::PlayerCharacter::GetSingleton())
-			playerName = player->GetDisplayFullName();
+		{
+			playerName = player->GetName();
+			if (auto base = player->GetActorBase())
+				playerGender = base->GetSex();
+			UpdatePlayerClassName();
+		}
 	}
 
 private:
-	void SetClassName(std::string_view a_name)
+	void UpdateClassInfo()
 	{
-		playerClass = a_name;
+		if (AffinityQuest)
+		{
+			RE::BSReadLockGuard l{ AffinityQuest->aliasAccessLock };
+			if (auto player = AffinityQuest->aliases[0];
+				player && player->aliasName == "Player"sv)
+			{
+				if (auto script = ScriptObject::FromAlias(player, "_00E_AffinityControl"sv))
+				{
+					playerClassIndex = ScriptObject::GetSInt(*script, "iCurrentAffinityIndex"sv).value_or(playerClassIndex);
+					playerClassMajor = ScriptObject::GetSInt(*script, "::MajorClassIndex_var"sv).value_or(playerClassMajor);
+					playerClassMinor = ScriptObject::GetSInt(*script, "::MinorClassIndex_var"sv).value_or(playerClassMinor);
+				}
+			}
+		}
 	}
 
-private:
-	void UpdateClassName()
+	void UpdatePlayerClassName()
 	{
-		RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> callback{ new UpdateClassNameCallback };
-		if (auto vm = RE::BSScript::Internal::VirtualMachine::GetSingleton())
-			vm->DispatchStaticCall("EnderalFunctions", "GetPlayerClassNameGlobal", RE::MakeFunctionArguments(), callback);
+		UpdateClassInfo();
+		if (playerClassIndex >= 0)
+		{
+			playerClass = affinName[playerClassIndex][playerGender];
+		}
+		else
+		{
+			playerClass = className[playerClassMajor][playerGender];
+			if (playerClassMinor > 0)
+				playerClass.append(" / ").append(className[playerClassMinor][playerGender]);
+		}
 	}
 
 private:
@@ -605,38 +670,6 @@ public:
 	}
 
 private:
-	void UpdateBookValue(ActorValue a_av)
-	{
-		for (std::int32_t i = 0; i < LevelTotal; i++)
-		{
-			if (auto form = RE::TESForm::LookupByID(bookForms[a_av][i]))
-				bookCost[a_av][i] = form->GetGoldValue();
-		}
-	}
-
-	void UpdateBookValues()
-	{
-		UpdateBookValue(kOneHanded);
-		UpdateBookValue(kTwoHanded);
-		UpdateBookValue(kMarksman);
-		UpdateBookValue(kBlock);
-		UpdateBookValue(kHandicraft);
-		UpdateBookValue(kHeavyArmor);
-		UpdateBookValue(kLightArmor);
-		UpdateBookValue(kSlightOfHand);
-		UpdateBookValue(kLockpicking);
-		UpdateBookValue(kRhetoric);
-		UpdateBookValue(kAlchemy);
-		UpdateBookValue(kSneak);
-		UpdateBookValue(kMentalism);
-		UpdateBookValue(kEntropy);
-		UpdateBookValue(kElementalism);
-		UpdateBookValue(kPsionics);
-		UpdateBookValue(kLightMagic);
-		UpdateBookValue(kEnchanting);
-	}
-
-private:
 	void UpdateMenuName()
 	{
 		playerNameGold = std::format("{0} / {1}: {2}", playerName, GetGoldName(), playerGold);
@@ -775,26 +808,120 @@ private:
 	}
 
 private:
-	// clang-format off
-	void UpdateForms()
+	void LoadBookValue(RE::TESDataHandler* a_data, ActorValue a_av)
 	{
-		if (auto data = RE::TESDataHandler::GetSingleton())
+		for (auto i = 0; i < LevelTotal; i++)
 		{
-			NoTransformTown = data->LookupForm<RE::BGSKeyword>(0x02EAA6, "Enderal - Forgotten Stories.esm"sv);
-			Seducer         = data->LookupForm<RE::BGSPerk>(0x069D3D, "Skyrim.esm"sv);
-			Mesmerize01     = data->LookupForm<RE::SpellItem>(0x01EFDA, "Enderal - Forgotten Stories.esm"sv);
-			Mesmerize02     = data->LookupForm<RE::SpellItem>(0x01EFDD, "Enderal - Forgotten Stories.esm"sv);
-			Mesmerize03     = data->LookupForm<RE::SpellItem>(0x01EFDE, "Enderal - Forgotten Stories.esm"sv);
-			EXPMult         = data->LookupForm<RE::TESGlobal>(0x008D2B, "Skyrim.esm"sv);
-			EXPMultSlope    = data->LookupForm<RE::TESGlobal>(0x0D0EDB, "Skyrim.esm"sv);
-			PlayerXP        = data->LookupForm<RE::TESGlobal>(0x012596, "Skyrim.esm"sv);
-			PlayerNeededXP  = data->LookupForm<RE::TESGlobal>(0x027CD1, "Skyrim.esm"sv);
-			PlayerLevel     = data->LookupForm<RE::TESGlobal>(0x012595, "Skyrim.esm"sv);
-			CraftingPoints  = data->LookupForm<RE::TESGlobal>(0x085A79, "Skyrim.esm"sv);
-			LearningPoints  = data->LookupForm<RE::TESGlobal>(0x031ACB, "Skyrim.esm"sv);
-			TalentPoints    = data->LookupForm<RE::TESGlobal>(0x05BCFA, "Skyrim.esm"sv);
-			Gold001         = data->LookupForm<RE::TESObjectMISC>(0x00000F, "Skyrim.esm"sv);
+			auto& [formID, fileName] = bookForms[a_av][i];
+			if (auto form = a_data->LookupForm(formID, fileName))
+				bookCost[a_av][i] = form->GetGoldValue();
 		}
+	}
+
+	void LoadBookValues(RE::TESDataHandler* a_data)
+	{
+		LoadBookValue(a_data, kOneHanded);
+		LoadBookValue(a_data, kTwoHanded);
+		LoadBookValue(a_data, kMarksman);
+		LoadBookValue(a_data, kBlock);
+		LoadBookValue(a_data, kHandicraft);
+		LoadBookValue(a_data, kHeavyArmor);
+		LoadBookValue(a_data, kLightArmor);
+		LoadBookValue(a_data, kSlightOfHand);
+		LoadBookValue(a_data, kLockpicking);
+		LoadBookValue(a_data, kRhetoric);
+		LoadBookValue(a_data, kAlchemy);
+		LoadBookValue(a_data, kSneak);
+		LoadBookValue(a_data, kMentalism);
+		LoadBookValue(a_data, kEntropy);
+		LoadBookValue(a_data, kElementalism);
+		LoadBookValue(a_data, kPsionics);
+		LoadBookValue(a_data, kLightMagic);
+		LoadBookValue(a_data, kEnchanting);
+	}
+
+private:
+	void LoadAffinityName(RE::TESDataHandler* a_data, Affinity a_affin)
+	{
+		for (auto i = 0; i < GenderTotal; i++)
+		{
+			auto& [formID, fileName] = affinForms[a_affin][i];
+			if (auto form = a_data->LookupForm(formID, fileName))
+				affinName[a_affin][i] = form->GetName();
+		}
+	}
+
+	void LoadAffinityNames(RE::TESDataHandler* a_data)
+	{
+		LoadAffinityName(a_data, kBattlemage);
+		LoadAffinityName(a_data, kCleric);
+		LoadAffinityName(a_data, kAssassin);
+		LoadAffinityName(a_data, kWayfarer);
+		LoadAffinityName(a_data, kBlackMage);
+		LoadAffinityName(a_data, kDarkKeeper);
+		LoadAffinityName(a_data, kFencer);
+		LoadAffinityName(a_data, kBladebreaker);
+		LoadAffinityName(a_data, kShadowdancer);
+		LoadAffinityName(a_data, kArcaneArcher);
+		LoadAffinityName(a_data, kWanderingMage);
+		LoadAffinityName(a_data, kSpectralist);
+		LoadAffinityName(a_data, kGhostBlade);
+		LoadAffinityName(a_data, kSpectralWarrior);
+		LoadAffinityName(a_data, kBrute);
+		LoadAffinityName(a_data, kDrifter);
+		LoadAffinityName(a_data, kDruid);
+		LoadAffinityName(a_data, kNightwolf);
+		LoadAffinityName(a_data, kRavager);
+		LoadAffinityName(a_data, kScourgeOfTheWilds);
+		LoadAffinityName(a_data, kSoulcaller);
+	}
+
+private:
+	void LoadClassName(RE::TESDataHandler* a_data, Class a_class)
+	{
+		for (auto i = 0; i < GenderTotal; i++)
+		{
+			auto& [formID, fileName] = classForms[a_class][i];
+			if (auto form = a_data->LookupForm(formID, fileName))
+				className[a_class][i] = form->GetName();
+		}
+	}
+
+	void LoadClassNames(RE::TESDataHandler* a_data)
+	{
+		LoadClassName(a_data, kNone);
+		LoadClassName(a_data, kBastion);
+		LoadClassName(a_data, kDerwish);
+		LoadClassName(a_data, kElementalist);
+		LoadClassName(a_data, kEspionage);
+		LoadClassName(a_data, kLifeAndDeath);
+		LoadClassName(a_data, kManipulation);
+		LoadClassName(a_data, kRage);
+		LoadClassName(a_data, kTrickery);
+		LoadClassName(a_data, kVagabond);
+		LoadClassName(a_data, kPhasmalist);
+		LoadClassName(a_data, kTheriantrophist);
+	}
+
+private:
+	// clang-format off
+	void LoadForms(RE::TESDataHandler* a_data)
+	{
+		NoTransformTown = a_data->LookupForm<RE::BGSKeyword>(0x02EAA6, "Enderal - Forgotten Stories.esm"sv);
+		Seducer         = a_data->LookupForm<RE::BGSPerk>(0x069D3D, "Skyrim.esm"sv);
+		Mesmerize01     = a_data->LookupForm<RE::SpellItem>(0x01EFDA, "Enderal - Forgotten Stories.esm"sv);
+		Mesmerize02     = a_data->LookupForm<RE::SpellItem>(0x01EFDD, "Enderal - Forgotten Stories.esm"sv);
+		Mesmerize03     = a_data->LookupForm<RE::SpellItem>(0x01EFDE, "Enderal - Forgotten Stories.esm"sv);
+		EXPMult         = a_data->LookupForm<RE::TESGlobal>(0x008D2B, "Skyrim.esm"sv);
+		EXPMultSlope    = a_data->LookupForm<RE::TESGlobal>(0x0D0EDB, "Skyrim.esm"sv);
+		PlayerXP        = a_data->LookupForm<RE::TESGlobal>(0x012596, "Skyrim.esm"sv);
+		PlayerNeededXP  = a_data->LookupForm<RE::TESGlobal>(0x027CD1, "Skyrim.esm"sv);
+		PlayerLevel     = a_data->LookupForm<RE::TESGlobal>(0x012595, "Skyrim.esm"sv);
+		CraftingPoints  = a_data->LookupForm<RE::TESGlobal>(0x085A79, "Skyrim.esm"sv);
+		LearningPoints  = a_data->LookupForm<RE::TESGlobal>(0x031ACB, "Skyrim.esm"sv);
+		TalentPoints    = a_data->LookupForm<RE::TESGlobal>(0x05BCFA, "Skyrim.esm"sv);
+		Gold001         = a_data->LookupForm<RE::TESObjectMISC>(0x00000F, "Skyrim.esm"sv);
+		AffinityQuest   = a_data->LookupForm<RE::TESQuest>(0x01597B, "Enderal - Forgotten Stories.esm"sv);
 	}
 	// clang-format on
 
@@ -802,12 +929,18 @@ private:
 	float actorValue[ActorValueTotal][IndexTotal]{};
 
 private:
-	std::int32_t playerGold{};
 	std::string  playerName{};
+	std::int32_t playerGender{};
+	std::int32_t playerGold{};
 	std::string  playerNameGold{};
 	std::string  playerClass{};
+	std::int32_t playerClassIndex{ -1 };
+	std::int32_t playerClassMajor{};
+	std::int32_t playerClassMinor{};
 
 private:
+	std::string  className[ClassTotal][GenderTotal]{};
+	std::string  affinName[AffinTotal][GenderTotal]{};
 	std::int32_t bookCost[SkillTotal][LevelTotal]{};
 
 private:
@@ -825,29 +958,71 @@ private:
 	RE::TESGlobal*     LearningPoints{ nullptr };
 	RE::TESGlobal*     TalentPoints{ nullptr };
 	RE::TESObjectMISC* Gold001{ nullptr };
+	RE::TESQuest*      AffinityQuest{ nullptr };
 
 private:
 	bool overrideMessage{ false };
 
 private:
-	static constexpr std::array<std::array<std::uint32_t, LevelTotal>, SkillTotal> bookForms {
-		std::array<std::uint32_t, 4>{ 0x031ACC, 0x031ACE, 0x033A5F, 0x039935 },	// kOneHanded
-		std::array<std::uint32_t, 4>{ 0x039936, 0x039937, 0x039938, 0x039939 },	// kTwoHanded
-		std::array<std::uint32_t, 4>{ 0x085641, 0x085643, 0x085644, 0x085642 },	// kMarksman
-		std::array<std::uint32_t, 4>{ 0x039941, 0x039942, 0x039943, 0x039944 },	// kBlock
-		std::array<std::uint32_t, 4>{ 0x0E7632, 0x0E7633, 0x0E7634, 0x0E7635 },	// kHandicraft
-		std::array<std::uint32_t, 4>{ 0x03F86A, 0x03F86B, 0x03F86C, 0x03F86D },	// kHeavyArmor
-		std::array<std::uint32_t, 4>{ 0x0E75F3, 0x0E75F4, 0x0E75F0, 0x0E75F2 },	// kLightArmor
-		std::array<std::uint32_t, 4>{ 0x0E762E, 0x0E762F, 0x0E7630, 0x0E7631 },	// kSlightOfHand
-		std::array<std::uint32_t, 4>{ 0x0E762A, 0x0E762B, 0x0E762C, 0x0E762D },	// kLockpicking
-		std::array<std::uint32_t, 4>{ 0x0E7636, 0x0E7637, 0x0E7638, 0x0E7639 },	// kSneak
-		std::array<std::uint32_t, 4>{ 0x0E7622, 0x0E7623, 0x0E7624, 0x0E7625 },	// kAlchemy
-		std::array<std::uint32_t, 4>{ 0x08591F, 0x08591E, 0x08591D, 0x08591B },	// kRhetoric
-		std::array<std::uint32_t, 4>{ 0x085618, 0x085619, 0x08561A, 0x08561B },	// kMentalism
-		std::array<std::uint32_t, 4>{ 0x085621, 0x085622, 0x085620, 0x085623 },	// kEntropy
-		std::array<std::uint32_t, 4>{ 0x085614, 0x085615, 0x085616, 0x085617 },	// kElementalism
-		std::array<std::uint32_t, 4>{ 0x08561C, 0x08561D, 0x08561E, 0x08561F },	// kPsionics
-		std::array<std::uint32_t, 4>{ 0x085624, 0x085625, 0x085626, 0x085627 },	// kLightMagic
-		std::array<std::uint32_t, 4>{ 0x0E7626, 0x0E7627, 0x0E7628, 0x0E7629 }, // kEnchanting
+	using FormID = std::pair<std::uint32_t, std::string_view>;
+
+	static constexpr std::array<std::array<FormID, LevelTotal>, SkillTotal> bookForms{
+		std::array<FormID, LevelTotal>{ std::make_pair(0x031ACC, "Skyrim.esm"sv), std::make_pair(0x031ACE, "Skyrim.esm"sv), std::make_pair(0x033A5F, "Skyrim.esm"sv), std::make_pair(0x039935, "Skyrim.esm") }, // kOneHanded
+		std::array<FormID, LevelTotal>{ std::make_pair(0x039936, "Skyrim.esm"sv), std::make_pair(0x039937, "Skyrim.esm"sv), std::make_pair(0x039938, "Skyrim.esm"sv), std::make_pair(0x039939, "Skyrim.esm") }, // kTwoHanded
+		std::array<FormID, LevelTotal>{ std::make_pair(0x085641, "Skyrim.esm"sv), std::make_pair(0x085643, "Skyrim.esm"sv), std::make_pair(0x085644, "Skyrim.esm"sv), std::make_pair(0x085642, "Skyrim.esm") }, // kMarksman
+		std::array<FormID, LevelTotal>{ std::make_pair(0x039941, "Skyrim.esm"sv), std::make_pair(0x039942, "Skyrim.esm"sv), std::make_pair(0x039943, "Skyrim.esm"sv), std::make_pair(0x039944, "Skyrim.esm") }, // kBlock
+		std::array<FormID, LevelTotal>{ std::make_pair(0x0E7632, "Skyrim.esm"sv), std::make_pair(0x0E7633, "Skyrim.esm"sv), std::make_pair(0x0E7634, "Skyrim.esm"sv), std::make_pair(0x0E7635, "Skyrim.esm") }, // kHandicraft
+		std::array<FormID, LevelTotal>{ std::make_pair(0x03F86A, "Skyrim.esm"sv), std::make_pair(0x03F86B, "Skyrim.esm"sv), std::make_pair(0x03F86C, "Skyrim.esm"sv), std::make_pair(0x03F86D, "Skyrim.esm") }, // kHeavyArmor
+		std::array<FormID, LevelTotal>{ std::make_pair(0x0E75F3, "Skyrim.esm"sv), std::make_pair(0x0E75F4, "Skyrim.esm"sv), std::make_pair(0x0E75F0, "Skyrim.esm"sv), std::make_pair(0x0E75F2, "Skyrim.esm") }, // kLightArmor
+		std::array<FormID, LevelTotal>{ std::make_pair(0x0E762E, "Skyrim.esm"sv), std::make_pair(0x0E762F, "Skyrim.esm"sv), std::make_pair(0x0E7630, "Skyrim.esm"sv), std::make_pair(0x0E7631, "Skyrim.esm") }, // kSlightOfHand
+		std::array<FormID, LevelTotal>{ std::make_pair(0x0E762A, "Skyrim.esm"sv), std::make_pair(0x0E762B, "Skyrim.esm"sv), std::make_pair(0x0E762C, "Skyrim.esm"sv), std::make_pair(0x0E762D, "Skyrim.esm") }, // kLockpicking
+		std::array<FormID, LevelTotal>{ std::make_pair(0x0E7636, "Skyrim.esm"sv), std::make_pair(0x0E7637, "Skyrim.esm"sv), std::make_pair(0x0E7638, "Skyrim.esm"sv), std::make_pair(0x0E7639, "Skyrim.esm") }, // kSneak
+		std::array<FormID, LevelTotal>{ std::make_pair(0x0E7622, "Skyrim.esm"sv), std::make_pair(0x0E7623, "Skyrim.esm"sv), std::make_pair(0x0E7624, "Skyrim.esm"sv), std::make_pair(0x0E7625, "Skyrim.esm") }, // kAlchemy
+		std::array<FormID, LevelTotal>{ std::make_pair(0x08591F, "Skyrim.esm"sv), std::make_pair(0x08591E, "Skyrim.esm"sv), std::make_pair(0x08591D, "Skyrim.esm"sv), std::make_pair(0x08591B, "Skyrim.esm") }, // kRhetoric
+		std::array<FormID, LevelTotal>{ std::make_pair(0x085618, "Skyrim.esm"sv), std::make_pair(0x085619, "Skyrim.esm"sv), std::make_pair(0x08561A, "Skyrim.esm"sv), std::make_pair(0x08561B, "Skyrim.esm") }, // kMentalism
+		std::array<FormID, LevelTotal>{ std::make_pair(0x085621, "Skyrim.esm"sv), std::make_pair(0x085622, "Skyrim.esm"sv), std::make_pair(0x085620, "Skyrim.esm"sv), std::make_pair(0x085623, "Skyrim.esm") }, // kEntropy
+		std::array<FormID, LevelTotal>{ std::make_pair(0x085614, "Skyrim.esm"sv), std::make_pair(0x085615, "Skyrim.esm"sv), std::make_pair(0x085616, "Skyrim.esm"sv), std::make_pair(0x085617, "Skyrim.esm") }, // kElementalism
+		std::array<FormID, LevelTotal>{ std::make_pair(0x08561C, "Skyrim.esm"sv), std::make_pair(0x08561D, "Skyrim.esm"sv), std::make_pair(0x08561E, "Skyrim.esm"sv), std::make_pair(0x08561F, "Skyrim.esm") }, // kPsionics
+		std::array<FormID, LevelTotal>{ std::make_pair(0x085624, "Skyrim.esm"sv), std::make_pair(0x085625, "Skyrim.esm"sv), std::make_pair(0x085626, "Skyrim.esm"sv), std::make_pair(0x085627, "Skyrim.esm") }, // kLightMagic
+		std::array<FormID, LevelTotal>{ std::make_pair(0x0E7626, "Skyrim.esm"sv), std::make_pair(0x0E7627, "Skyrim.esm"sv), std::make_pair(0x0E7628, "Skyrim.esm"sv), std::make_pair(0x0E7629, "Skyrim.esm") }, // kEnchanting
+	};
+
+	static constexpr std::array<std::array<FormID, GenderTotal>, ClassTotal> classForms{
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A8B, "Skyrim.esm"sv),                      std::make_pair(0x042A7A, "Skyrim.esm"sv)                      }, // kNone
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A84, "Skyrim.esm"sv),                      std::make_pair(0x042A7B, "Skyrim.esm"sv)                      }, // kBastion
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A85, "Skyrim.esm"sv),                      std::make_pair(0x042A7C, "Skyrim.esm"sv)                      }, // kDerwish
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A86, "Skyrim.esm"sv),                      std::make_pair(0x042A7D, "Skyrim.esm"sv)                      }, // kElementalist
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A87, "Skyrim.esm"sv),                      std::make_pair(0x042A7E, "Skyrim.esm"sv)                      }, // kEspionage
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A89, "Skyrim.esm"sv),                      std::make_pair(0x042A7F, "Skyrim.esm"sv)                      }, // kLifeAndDeath
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A8A, "Skyrim.esm"sv),                      std::make_pair(0x042A80, "Skyrim.esm"sv)                      }, // kManipulation
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042AA1, "Skyrim.esm"sv),                      std::make_pair(0x042A81, "Skyrim.esm"sv)                      }, // kRage
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042AA2, "Skyrim.esm"sv),                      std::make_pair(0x042A82, "Skyrim.esm"sv)                      }, // kTrickery
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042AA3, "Skyrim.esm"sv),                      std::make_pair(0x042A83, "Skyrim.esm"sv)                      }, // kVagabond
+		std::array<FormID, GenderTotal>{ std::make_pair(0x044EEB, "Skyrim.esm"sv),                      std::make_pair(0x044EED, "Skyrim.esm"sv)                      }, // kPhasmalist
+		std::array<FormID, GenderTotal>{ std::make_pair(0x02F188, "Enderal - Forgotten Stories.esm"sv), std::make_pair(0x02F189, "Enderal - Forgotten Stories.esm"sv) }, // kTheriantrophist
+	};
+
+	static constexpr std::array<std::array<FormID, GenderTotal>, AffinTotal> affinForms{
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A8C, "Skyrim.esm"sv),                      std::make_pair(0x042A99, "Skyrim.esm"sv)                      }, // kBattlemage
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A8D, "Skyrim.esm"sv),                      std::make_pair(0x042A9D, "Skyrim.esm"sv)                      }, // kCleric
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A8E, "Skyrim.esm"sv),                      std::make_pair(0x042A98, "Skyrim.esm"sv)                      }, // kAssassin
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A90, "Skyrim.esm"sv),                      std::make_pair(0x042AA0, "Skyrim.esm"sv)                      }, // kWayfarer
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A91, "Skyrim.esm"sv),                      std::make_pair(0x042A9A, "Skyrim.esm"sv)                      }, // kBlackMage
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A92, "Skyrim.esm"sv),                      std::make_pair(0x042A9E, "Skyrim.esm"sv)                      }, // kDarkKeeper
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A93, "Skyrim.esm"sv),                      std::make_pair(0x042A9C, "Skyrim.esm"sv)                      }, // kFencer
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A94, "Skyrim.esm"sv),                      std::make_pair(0x042A9B, "Skyrim.esm"sv)                      }, // kBladebreaker
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A95, "Skyrim.esm"sv),                      std::make_pair(0x042A9F, "Skyrim.esm"sv)                      }, // kShadowdancer
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A96, "Skyrim.esm"sv),                      std::make_pair(0x042A97, "Skyrim.esm"sv)                      }, // kArcaneArcher
+		std::array<FormID, GenderTotal>{ std::make_pair(0x042A8B, "Skyrim.esm"sv),                      std::make_pair(0x042A7A, "Skyrim.esm"sv)                      }, // kWanderingMage
+		std::array<FormID, GenderTotal>{ std::make_pair(0x029A35, "Enderal - Forgotten Stories.esm"sv), std::make_pair(0x044EEE, "Skyrim.esm"sv)                      }, // kSpectralist
+		std::array<FormID, GenderTotal>{ std::make_pair(0x044EF3, "Skyrim.esm"sv),                      std::make_pair(0x029A34, "Enderal - Forgotten Stories.esm"sv) }, // kGhostBlade
+		std::array<FormID, GenderTotal>{ std::make_pair(0x02F178, "Enderal - Forgotten Stories.esm"sv), std::make_pair(0x02F179, "Enderal - Forgotten Stories.esm"sv) }, // kSpectralWarrior
+		std::array<FormID, GenderTotal>{ std::make_pair(0x02F17A, "Enderal - Forgotten Stories.esm"sv), std::make_pair(0x02F17B, "Enderal - Forgotten Stories.esm"sv) }, // kBrute
+		std::array<FormID, GenderTotal>{ std::make_pair(0x02F17C, "Enderal - Forgotten Stories.esm"sv), std::make_pair(0x02F17D, "Enderal - Forgotten Stories.esm"sv) }, // kDrifter
+		std::array<FormID, GenderTotal>{ std::make_pair(0x02F17E, "Enderal - Forgotten Stories.esm"sv), std::make_pair(0x02F17F, "Enderal - Forgotten Stories.esm"sv) }, // kDruid
+		std::array<FormID, GenderTotal>{ std::make_pair(0x02F180, "Enderal - Forgotten Stories.esm"sv), std::make_pair(0x02F181, "Enderal - Forgotten Stories.esm"sv) }, // kNightwolf
+		std::array<FormID, GenderTotal>{ std::make_pair(0x02F182, "Enderal - Forgotten Stories.esm"sv), std::make_pair(0x02F183, "Enderal - Forgotten Stories.esm"sv) }, // kRavager
+		std::array<FormID, GenderTotal>{ std::make_pair(0x02F184, "Enderal - Forgotten Stories.esm"sv), std::make_pair(0x02F185, "Enderal - Forgotten Stories.esm"sv) }, // kScourgeOfTheWilds
+		std::array<FormID, GenderTotal>{ std::make_pair(0x02F187, "Enderal - Forgotten Stories.esm"sv), std::make_pair(0x02F186, "Enderal - Forgotten Stories.esm"sv) }, // kSoulcaller
 	};
 };
