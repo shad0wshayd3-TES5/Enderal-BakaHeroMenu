@@ -450,7 +450,7 @@ private:
 
 	std::int32_t GetGoldCost(ActorValue a_av)
 	{
-		auto value = GetActorValue(a_av);
+		auto value = GetBaseActorValue(a_av);
 		if (value < 25)
 			return GetGoldCost(a_av, kApprentice);
 		else if (value < 50)
@@ -506,6 +506,7 @@ private:
 		UpdateMenu();
 	}
 
+public:
 	void IncreaseSkill(ActorValue a_av, std::int32_t a_cost)
 	{
 		switch (a_av)
